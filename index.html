@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dépose ton EPK — Sur la scène · La Brassée</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@200;300;400;500;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --jaune: #f7d135;
+    --jaune-clair: rgba(247, 209, 53, 0.15);
+    --jaune-trame: rgba(247, 209, 53, 0.3);
+    --jaune-fort: rgba(247, 209, 53, 0.5);
+    --creme: rgba(205, 196, 157, 0.2);
+    --creme-fort: rgba(205, 196, 157, 0.6);
+    --sombre: #100f09;
+    --sombre-alt: #1f1c0f;
+    --noir-pur: #0a0905;
+    --blanc: #ffffff;
+    --blanc-doux: rgba(255, 255, 255, 0.85);
+    --gris: rgba(255, 255, 255, 0.55);
+    --rouge: #ff6b6b;
+    --vert: #8ad672;
+
+    --glass-bg: rgba(255, 255, 255, 0.04);
+    --glass-bg-fort: rgba(255, 255, 255, 0.07);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --glass-border-fort: rgba(255, 255, 255, 0.2);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.15), inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+
+    --font-titre: 'Oswald', 'DIN Condensed', 'Helvetica Neue Condensed', Impact, sans-serif;
+    --font-corps: 'Lato', 'Acumin Pro', 'Helvetica Neue', Arial, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--sombre); }
+  body {
+    font-family: var(--font-corps);
+    color: var(--blanc);
+    line-height: 1.6;
+    font-size: 16px;
+    font-weight: 300;
+    background:
+      radial-gradient(ellipse at 30% 10%, rgba(247, 209, 53, 0.10), transparent 55%),
+      radial-gradient(ellipse at 70% 90%, rgba(247, 209, 53, 0.05), transparent 50%),
+      linear-gradient(to bottom, var(--sombre) 0%, var(--sombre-alt) 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Spots de scène — décor CSS */
+  body::before, body::after {
+    content: '';
+    position: fixed;
+    width: 60vmin; height: 100vmin;
+    pointer-events: none;
+    z-index: 1;
+    background: radial-gradient(ellipse at center, rgba(247, 209, 53, 0.06), transparent 60%);
+    filter: blur(40px);
+  }
+  body::before { top: -20vmin; left: -10vmin; transform: rotate(-12deg); animation: spotA 14s ease-in-out infinite; }
+  body::after  { top: -20vmin; right: -10vmin; transform: rotate(12deg);  animation: spotB 16s ease-in-out infinite; }
+  @keyframes spotA { 0%,100% { opacity: 0.5; } 50% { opacity: 0.95; } }
+  @keyframes spotB { 0%,100% { opacity: 0.95; } 50% { opacity: 0.45; } }
+
+  .watermark {
+    position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(85vmin, 700px); height: min(85vmin, 700px);
+    pointer-events: none; z-index: 0; opacity: 0.05;
+    animation: respire 8s ease-in-out infinite;
+  }
+  .watermark svg { width: 100%; height: 100%; }
+  .watermark svg path { stroke: var(--jaune) !important; stroke-width: 1.2 !important; }
+  @keyframes respire {
+    0%, 100% { opacity: 0.05; transform: translate(-50%, -50%) scale(1); }
+    50% { opacity: 0.08; transform: translate(-50%, -50%) scale(1.02); }
+  }
+
+  #app-chargement, #app-charge, #app-erreur-token, header, main, footer { position: relative; z-index: 2; }
+  .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+  #app-chargement {
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; padding: 40px 24px; text-align: center;
+  }
+  #app-chargement .titre-chargement {
+    font-family: var(--font-titre); font-size: 14px; letter-spacing: 4px;
+    text-transform: uppercase; color: var(--jaune); margin-bottom: 18px; font-weight: 300;
+  }
+  #app-chargement .hint { color: var(--gris); font-size: 14px; max-width: 420px; line-height: 1.5; }
+  #app-chargement .hint strong { color: var(--blanc); }
+
+  .ecran-token-invalide {
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center; padding: 60px 24px;
+  }
+  .ecran-token-invalide h2 {
+    font-family: var(--font-titre); font-size: 36px; font-weight: 200;
+    color: var(--jaune); margin-bottom: 18px; letter-spacing: 1px;
+  }
+  .ecran-token-invalide p { color: var(--blanc-doux); margin-bottom: 24px; max-width: 460px; }
+  .ecran-token-invalide a {
+    color: var(--jaune); text-decoration: none; font-family: var(--font-titre);
+    text-transform: uppercase; letter-spacing: 2px; font-size: 14px;
+    border-bottom: 1px solid var(--jaune-trame); padding-bottom: 4px;
+  }
+
+  header {
+    text-align: center; padding: 56px 24px 40px;
+    border-bottom: 1px solid var(--glass-border); margin-bottom: 36px;
+  }
+  header .logo-svg { width: 96px; height: 96px; margin: 0 auto 22px; }
+  header .logo-svg svg { width: 100%; height: 100%; }
+  header .logo-svg svg .st0, header .logo-svg svg path, header .logo-svg svg polygon { fill: var(--jaune) !important; }
+  header h1 {
+    font-family: var(--font-titre); font-size: clamp(28px, 5vw, 38px);
+    font-weight: 300; letter-spacing: 4px; color: var(--blanc); margin-bottom: 10px;
+  }
+  header .sous-titre {
+    color: var(--creme-fort); font-family: var(--font-titre);
+    text-transform: uppercase; letter-spacing: 3px; font-size: 12px; font-weight: 300;
+  }
+  /* Décor barre de spectre — 7 barres jaunes statiques */
+  .spectre { display: flex; gap: 4px; justify-content: center; margin: 22px auto 0; }
+  .spectre .barre {
+    width: 4px; background: var(--jaune); opacity: 0.55;
+    animation: spectre-anim 1.4s ease-in-out infinite;
+    border-radius: 999px;
+  }
+  .spectre .barre:nth-child(1) { height: 14px; animation-delay: 0s; }
+  .spectre .barre:nth-child(2) { height: 24px; animation-delay: 0.18s; }
+  .spectre .barre:nth-child(3) { height: 36px; animation-delay: 0.36s; }
+  .spectre .barre:nth-child(4) { height: 48px; animation-delay: 0.54s; }
+  .spectre .barre:nth-child(5) { height: 36px; animation-delay: 0.72s; }
+  .spectre .barre:nth-child(6) { height: 24px; animation-delay: 0.9s;  }
+  .spectre .barre:nth-child(7) { height: 14px; animation-delay: 1.08s; }
+  @keyframes spectre-anim { 0%,100% { transform: scaleY(0.6); opacity: 0.5; } 50% { transform: scaleY(1); opacity: 0.95; } }
+
+  .accueil {
+    background: linear-gradient(135deg, rgba(247, 209, 53, 0.10), rgba(247, 209, 53, 0.02));
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid var(--jaune-trame);
+    box-shadow: var(--glass-inset), var(--glass-shadow);
+    padding: 32px 36px; margin-bottom: 32px; border-radius: 20px;
+  }
+  .accueil h2 {
+    font-family: var(--font-titre); font-size: 26px; margin-bottom: 14px;
+    text-transform: uppercase; letter-spacing: 2px; font-weight: 400; color: var(--jaune);
+  }
+  .accueil p { margin-bottom: 10px; color: var(--blanc-doux); }
+  .accueil .dates {
+    background: rgba(0, 0, 0, 0.3); padding: 18px 22px; margin-top: 20px;
+    border-left: 3px solid var(--jaune); border-radius: 4px;
+  }
+  .accueil .dates div {
+    margin-bottom: 8px; font-family: var(--font-titre);
+    text-transform: uppercase; letter-spacing: 1.5px; font-size: 14px;
+    color: var(--blanc-doux); font-weight: 300;
+    display: flex; align-items: baseline; gap: 16px;
+  }
+  .accueil .dates div:last-child { margin-bottom: 0; }
+  .accueil .dates strong { color: var(--jaune); font-weight: 500; min-width: 120px; }
+
+  fieldset {
+    border: 1px solid var(--glass-border); padding: 32px; margin-bottom: 28px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    box-shadow: var(--glass-inset), var(--glass-shadow);
+    border-radius: 20px;
+  }
+  legend {
+    font-family: var(--font-titre); font-weight: 400;
+    text-transform: uppercase; letter-spacing: 4px; font-size: 13px;
+    padding: 8px 18px; background: var(--jaune); color: var(--sombre); border-radius: 999px;
+  }
+  label {
+    display: block; font-family: var(--font-titre); font-weight: 400;
+    font-size: 12px; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--creme-fort); margin-bottom: 8px; margin-top: 20px;
+  }
+  label:first-of-type { margin-top: 0; }
+  label .opt {
+    font-weight: 300; color: var(--gris); text-transform: none;
+    font-size: 11px; letter-spacing: 0.5px; font-style: italic; margin-left: 6px;
+  }
+  input[type="text"], input[type="email"], input[type="tel"], input[type="number"], input[type="url"], textarea, select {
+    width: 100%; padding: 12px 14px; border: 1px solid var(--glass-border);
+    font-family: var(--font-corps); font-size: 15px;
+    background: rgba(0, 0, 0, 0.25); color: var(--blanc);
+    transition: all 0.2s ease; border-radius: 8px;
+  }
+  input:focus, textarea:focus, select:focus {
+    outline: none; border-color: var(--jaune);
+    background: rgba(0, 0, 0, 0.4); box-shadow: 0 0 0 3px rgba(247, 209, 53, 0.1);
+  }
+  input::placeholder, textarea::placeholder { color: rgba(255, 255, 255, 0.3); }
+  textarea { resize: vertical; min-height: 100px; }
+  .deux-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .trois-cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 600px) {
+    .deux-cols, .trois-cols { grid-template-columns: 1fr; gap: 0; }
+  }
+
+  .dropzone-artiste {
+    border: 2px dashed var(--glass-border-fort); padding: 24px; text-align: center;
+    background: rgba(0, 0, 0, 0.2); cursor: pointer; transition: all 0.2s ease; border-radius: 12px;
+  }
+  .dropzone-artiste:hover, .dropzone-artiste.drag-actif { border-color: var(--jaune); background: var(--jaune-clair); }
+  .dropzone-artiste .icone { font-size: 28px; margin-bottom: 8px; }
+  .dropzone-artiste .label-zone {
+    font-family: var(--font-titre); font-weight: 400; font-size: 13px;
+    text-transform: uppercase; letter-spacing: 2px; color: var(--jaune);
+  }
+  .dropzone-artiste .hint { font-size: 12px; color: var(--gris); margin-top: 4px; font-family: var(--font-corps); }
+  .dropzone-artiste img { max-width: 180px; max-height: 180px; margin-top: 12px; border: 2px solid var(--jaune); display: block; margin-left: auto; margin-right: auto; border-radius: 8px; }
+  .dropzone-artiste input[type="file"] { display: none; }
+
+  .info-batch {
+    background: rgba(0, 0, 0, 0.25); padding: 16px 20px; margin-bottom: 18px;
+    border-left: 3px solid var(--jaune); border-radius: 4px;
+    font-size: 14px; color: var(--blanc-doux); line-height: 1.5;
+  }
+  .dropzone-batch {
+    border: 2px dashed var(--jaune-fort); padding: 48px 24px; text-align: center;
+    background: linear-gradient(135deg, rgba(247, 209, 53, 0.10), rgba(247, 209, 53, 0.02));
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    cursor: pointer; transition: all 0.2s ease; margin-bottom: 24px; border-radius: 16px;
+  }
+  .dropzone-batch:hover, .dropzone-batch.drag-actif {
+    background: rgba(247, 209, 53, 0.18); border-color: var(--jaune); transform: translateY(-2px);
+  }
+  .dropzone-batch .icone { font-size: 48px; margin-bottom: 14px; }
+  .dropzone-batch .titre {
+    font-family: var(--font-titre); font-weight: 400; font-size: 22px;
+    text-transform: uppercase; letter-spacing: 3px; margin-bottom: 8px; color: var(--jaune);
+  }
+  .dropzone-batch .hint { font-size: 14px; color: var(--blanc-doux); }
+  .dropzone-batch input[type="file"] { display: none; }
+
+  .compteur {
+    font-family: var(--font-titre); font-size: 12px; color: var(--creme-fort);
+    margin-bottom: 14px; text-align: right; text-transform: uppercase; letter-spacing: 2px;
+  }
+
+  .photo-carte {
+    background: rgba(0, 0, 0, 0.25); backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border); box-shadow: var(--glass-inset);
+    margin-bottom: 12px; padding: 14px; display: flex; gap: 14px; align-items: center;
+    transition: all 0.2s ease; border-radius: 12px;
+  }
+  .photo-carte:hover { border-color: var(--jaune-trame); }
+  .photo-carte .miniature {
+    width: 80px; height: 80px; background-size: cover; background-position: center;
+    border: 1px solid var(--glass-border-fort); border-radius: 8px; flex-shrink: 0;
+  }
+  .photo-carte .nom { flex: 1; color: var(--blanc-doux); font-size: 13px; }
+  .photo-carte button.retirer {
+    background: transparent; color: var(--rouge); border: 1px solid var(--rouge);
+    padding: 6px 12px; font-family: var(--font-titre); font-size: 10px;
+    text-transform: uppercase; letter-spacing: 2px; cursor: pointer; border-radius: 999px;
+  }
+  .photo-carte button.retirer:hover { background: var(--rouge); color: var(--blanc); }
+
+  .liens-grille { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 600px) { .liens-grille { grid-template-columns: 1fr; } }
+  .lien-bloc {
+    background: rgba(0, 0, 0, 0.25); border: 1px solid var(--glass-border);
+    padding: 14px 16px; border-radius: 12px;
+  }
+  .lien-bloc label { margin-top: 0; margin-bottom: 6px; font-size: 11px; }
+  .lien-bloc input { padding: 8px 10px; font-size: 13px; }
+
+  .progress-bar {
+    height: 4px; background: rgba(0, 0, 0, 0.4); margin: 18px 0;
+    overflow: hidden; display: none; border-radius: 999px;
+  }
+  .progress-bar.actif { display: block; }
+  .progress-bar .barre-prog { height: 100%; background: var(--jaune); width: 0; transition: width 0.3s ease; }
+
+  .message {
+    padding: 22px 26px; margin: 20px 0; display: none;
+    border-left: 3px solid; backdrop-filter: blur(20px); border-radius: 12px;
+  }
+  .message.actif { display: block; }
+  .message.succes { background: rgba(138, 214, 114, 0.12); border-color: var(--vert); color: var(--blanc); }
+  .message.erreur { background: rgba(255, 107, 107, 0.12); border-color: var(--rouge); color: var(--blanc); }
+  .message .titre {
+    font-family: var(--font-titre); font-weight: 500; font-size: 14px;
+    text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px;
+  }
+  .message.succes .titre { color: var(--vert); }
+  .message.erreur .titre { color: var(--rouge); }
+
+  .envoi { text-align: center; padding: 36px 0 56px; }
+  button.envoyer {
+    background: var(--jaune); color: var(--sombre); border: none;
+    padding: 20px 56px; font-family: var(--font-titre); font-weight: 500;
+    font-size: 16px; text-transform: uppercase; letter-spacing: 4px;
+    cursor: pointer; border-radius: 999px; transition: all 0.3s ease;
+    box-shadow: 0 8px 24px rgba(247, 209, 53, 0.2);
+  }
+  button.envoyer:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(247, 209, 53, 0.4); }
+  button.envoyer:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  footer {
+    text-align: center; padding: 48px 24px;
+    border-top: 1px solid var(--glass-border);
+    color: var(--gris); font-size: 13px;
+    background: rgba(10, 9, 5, 0.6); backdrop-filter: blur(20px);
+  }
+  footer .logo-svg-footer { width: 64px; height: 64px; margin: 0 auto 14px; }
+  footer .logo-svg-footer svg { width: 100%; height: 100%; }
+  footer .logo-svg-footer svg .st0, footer .logo-svg-footer svg path, footer .logo-svg-footer svg polygon { fill: var(--jaune) !important; }
+  footer .nom-marque {
+    font-family: var(--font-titre); color: var(--jaune);
+    font-size: 14px; letter-spacing: 3px; margin-bottom: 8px; text-transform: uppercase;
+  }
+  footer a { color: var(--blanc-doux); text-decoration: none; transition: color 0.2s; }
+  footer a:hover { color: var(--jaune); }
+</style>
+</head>
+<body>
+
+<div class="watermark" id="watermark"></div>
+
+<noscript>
+  <div style="padding:40px;text-align:center;color:#fff;font-family:Lato,sans-serif">
+    <h2 style="color:#f7d135;margin-bottom:12px">JavaScript est requis</h2>
+    <p>Active JavaScript dans ton navigateur pour utiliser cet espace de dépôt.</p>
+  </div>
+</noscript>
+
+<div id="app-chargement">
+  <div class="titre-chargement">Chargement…</div>
+  <div class="hint">Si rien ne s'affiche dans 5 secondes, vérifie que l'URL contient bien <strong>?t=ton-token</strong></div>
+</div>
+
+<div id="app-charge" style="display:none">
+
+<header>
+  <div class="logo-svg" id="logo-header"></div>
+  <h1>LA BRASSÉE — SURLASCÈNE</h1>
+  <div class="sous-titre">Espace de dépôt pour ton concert</div>
+  <div class="spectre" aria-hidden="true">
+    <div class="barre"></div><div class="barre"></div><div class="barre"></div>
+    <div class="barre"></div><div class="barre"></div><div class="barre"></div><div class="barre"></div>
+  </div>
+</header>
+
+<main class="container">
+
+  <div class="accueil">
+    <h2>Salut <span id="nom-artiste-accueil">…</span> 🐝</h2>
+    <p>Cet espace privé te permet de déposer tout ce dont on a besoin pour ton passage à La Brassée : ta bio, ton EPK (photos HD, liens audio et vidéo), ton setlist et ton rider technique.</p>
+    <p>Tu peux remplir en plusieurs fois. Quand tu cliques « Envoyer », tout part vers Cédric.</p>
+    <p style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(247,209,53,0.2);font-size:14px;color:rgba(255,255,255,0.75)">🎤 <strong style="color:var(--jaune);font-weight:500">Soundcheck dès 18 h 30</strong> · début du show à <strong style="color:var(--jaune)">19 h 30</strong> · format <strong style="color:var(--jaune)">2 sets de 45 min · pause 15 min</strong>. C'est Cédric qui tient la console son.</p>
+    <p style="font-size:14px;color:rgba(255,255,255,0.75);margin-top:10px">💸 <strong style="color:var(--jaune);font-weight:500">Rémunération</strong> · pas de billetterie, public en participation libre (chapeau) + <strong style="color:var(--jaune)">majoration 10 % sur les factures</strong> pendant le show, intégralement reversée à toi (et tes co-artistes s'il y en a). <strong style="color:var(--jaune)">30 $ de conso offerte</strong> par artiste (plafond 120 $/soirée).</p>
+    <p style="font-size:14px;color:rgba(255,255,255,0.75);margin-top:10px">🎥 <strong style="color:var(--jaune);font-weight:500">Captation audio + vidéo stéréo sur clé USB</strong> · <strong style="color:var(--jaune)">40 $</strong> la prestation (option, dis-le-nous d'avance).</p>
+    <div class="dates">
+      <div><strong>Date du show</strong><span id="date-show">…</span></div>
+      <div><strong>Soundcheck</strong><span id="heure-soundcheck">…</span></div>
+      <div><strong>Show</strong><span id="heures-show">…</span></div>
+    </div>
+  </div>
+
+  <form id="formulaire" onsubmit="return false;">
+
+    <fieldset>
+      <legend>Toi (ou votre groupe)</legend>
+
+      <label for="bio">Bio courte <span class="opt">(4 à 8 lignes — parcours, ton univers, ce qui te porte sur scène)</span></label>
+      <textarea id="bio" placeholder="Ex : Trio jazz manouche formé en 2022 à Montréal..."></textarea>
+
+      <div class="deux-cols">
+        <div>
+          <label for="titre_set">Titre / thème de ta perfo <span class="opt">(optionnel)</span></label>
+          <input type="text" id="titre_set" placeholder="Ex : Carnets de printemps">
+        </div>
+        <div>
+          <label for="genre">Genre musical <span class="opt">(2-3 mots)</span></label>
+          <input type="text" id="genre" placeholder="Ex : jazz manouche, swing">
+        </div>
+      </div>
+
+      <div class="deux-cols">
+        <div>
+          <label for="nb_personnes_scene">Nb de personnes sur scène</label>
+          <input type="number" id="nb_personnes_scene" min="1" max="10" placeholder="3">
+        </div>
+        <div>
+          <label for="duree_set_minutes">Durée du set (en minutes)</label>
+          <input type="number" id="duree_set_minutes" min="20" max="180" step="5" placeholder="75">
+        </div>
+      </div>
+
+      <div class="deux-cols">
+        <div>
+          <label for="cellulaire">Cellulaire <span class="opt">(pour te joindre le jour du show)</span></label>
+          <input type="tel" id="cellulaire" placeholder="514 555 1234">
+        </div>
+        <div>
+          <label>Photo principale <span class="opt">(format carré ou portrait, JPG/PNG)</span></label>
+          <div class="dropzone-artiste" id="dropzone-artiste">
+            <div class="icone">📷</div>
+            <div class="label-zone">Glisser ou cliquer</div>
+            <div class="hint">Max 10 Mo</div>
+            <img id="apercu-artiste" style="display:none">
+            <input type="file" id="photo-artiste-input" accept="image/*">
+          </div>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Liens (EPK)</legend>
+      <div class="info-batch">
+        Colle ici tous les liens utiles à ta promo et à l'écoute. Au moins 1 lien audio est fortement recommandé pour qu'on puisse découvrir ton univers.
+      </div>
+      <div class="liens-grille">
+        <div class="lien-bloc">
+          <label for="instagram">📷 Instagram</label>
+          <input type="text" id="instagram" placeholder="@ton-compte ou URL">
+        </div>
+        <div class="lien-bloc">
+          <label for="facebook">👍 Facebook</label>
+          <input type="url" id="facebook" placeholder="https://facebook.com/...">
+        </div>
+        <div class="lien-bloc">
+          <label for="site_web">🌐 Site web</label>
+          <input type="url" id="site_web" placeholder="https://...">
+        </div>
+        <div class="lien-bloc">
+          <label for="spotify_url">🎧 Spotify</label>
+          <input type="url" id="spotify_url" placeholder="https://open.spotify.com/...">
+        </div>
+        <div class="lien-bloc">
+          <label for="bandcamp_url">💿 Bandcamp</label>
+          <input type="url" id="bandcamp_url" placeholder="https://...bandcamp.com">
+        </div>
+        <div class="lien-bloc">
+          <label for="soundcloud_url">🔊 SoundCloud</label>
+          <input type="url" id="soundcloud_url" placeholder="https://soundcloud.com/...">
+        </div>
+        <div class="lien-bloc">
+          <label for="youtube_url">📺 YouTube</label>
+          <input type="url" id="youtube_url" placeholder="https://youtube.com/...">
+        </div>
+        <div class="lien-bloc">
+          <label for="vimeo_url">🎬 Vimeo</label>
+          <input type="url" id="vimeo_url" placeholder="https://vimeo.com/...">
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Photos HD pour la comm</legend>
+      <div class="info-batch">
+        Glisse jusqu'à 6 photos haute définition (JPG/PNG, max 10 Mo chacune). On les utilisera pour Facebook, Instagram, la page publique de La Brassée et la TV Cuisine. Idéalement, des photos libres de droits (ou dont tu as les droits) — mentionne en commentaire si crédit photo à indiquer.
+      </div>
+      <div class="dropzone-batch" id="dropzone-batch">
+        <div class="icone">🖼️</div>
+        <div class="titre">Glisse tes photos HD ici</div>
+        <div class="hint">Ou clique pour parcourir · JPG/PNG, max 10 Mo</div>
+        <input type="file" id="batch-input" accept="image/*" multiple>
+      </div>
+      <div class="compteur"><span id="nb-photos">0</span> photo(s) ajoutée(s)</div>
+      <div class="photos-zone" id="photos-zone"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Setlist</legend>
+      <label for="setlist">Setlist prévisionnel <span class="opt">(ordre + titres, ou juste une liste, peu importe le format)</span></label>
+      <textarea id="setlist" placeholder="1. Minor Swing&#10;2. Nuages&#10;3. Belleville&#10;..."></textarea>
+    </fieldset>
+
+    <fieldset>
+      <legend>Rider technique</legend>
+      <label for="rider_technique">Ce dont tu as besoin sur scène <span class="opt">(matos perso · besoins son et lumière · ce que tu apportes vs ce que tu attends de nous)</span></label>
+      <textarea id="rider_technique" placeholder="Ex : J'apporte ma guitare et mon ampli Fender Princeton. Besoin d'1 micro voix sur pied + 1 micro instrument pour la guitare. Pas besoin de retour, je m'entends bien à l'ampli."></textarea>
+      <p style="font-size:13px;color:var(--gris);margin-top:8px;font-style:italic">💡 Consulte le <strong style="color:var(--jaune)">dossier technique de La Brassée</strong> sur la page publique pour voir ce qu'on fournit (sono, micros, lumière, backline).</p>
+
+      <label for="besoins_hospitality">Besoins hospitality <span class="opt">(allergies, régimes, demandes particulières — on a 30 $ de conso offerts par artiste, plafond 120 $)</span></label>
+      <textarea id="besoins_hospitality" placeholder="Ex : Bassiste végé. Préférence pour bières IPA et un truc à manger après le soundcheck."></textarea>
+    </fieldset>
+
+    <fieldset>
+      <legend>Signature</legend>
+      <div style="background:rgba(0,0,0,0.25);padding:18px 22px;margin-bottom:18px;border-left:3px solid var(--jaune);border-radius:4px;font-size:14px;color:var(--blanc-doux);line-height:1.6">
+        <div style="font-family:var(--font-titre);text-transform:uppercase;letter-spacing:2px;font-size:12px;color:var(--jaune);margin-bottom:10px">Conditions du partenariat</div>
+        <ul style="list-style:none;padding:0;margin:0">
+          <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">🎤 <strong style="color:var(--jaune)">Soundcheck dès 18 h 30</strong> · début show 19 h 30 · format 2 sets de 45 min + pause 15 min</li>
+          <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">💸 <strong style="color:var(--jaune)">Aucune billetterie</strong> · public en participation libre (chapeau, dons en main propre)</li>
+          <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">💵 <strong style="color:var(--jaune)">Majoration 10 % sur les factures</strong> pendant le show · <strong style="color:var(--jaune)">100 % reversée aux artistes</strong> (La Brassée ne prélève rien)</li>
+          <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">🍻 <strong style="color:var(--jaune)">30 $ de conso offerte minimum</strong> par artiste · plafond 120 $/soirée</li>
+          <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">🎥 <strong style="color:var(--jaune)">Captation audio + vidéo stéréo USB disponible</strong> · 40 $/prestation (option)</li>
+          <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">📅 Un artiste peut revenir <strong style="color:var(--jaune)">maximum 3 fois par année calendrier</strong> (on aime faire tourner)</li>
+          <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">📷 Droit d'image pour la communication du show (et 6 mois après), nom de l'artiste systématiquement mentionné</li>
+          <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">❌ Annulation : préavis de <strong style="color:var(--jaune)">7 jours minimum</strong>, sauf force majeure</li>
+          <li style="padding:6px 0">🛡️ Responsabilité matériel : l'artiste est responsable de son matos personnel · La Brassée fournit ce qui est listé au dossier technique</li>
+        </ul>
+      </div>
+
+      <label for="signature_nom">Ton nom complet (ou nom du référent du groupe) <span class="opt">(pour la signature)</span></label>
+      <input type="text" id="signature_nom" placeholder="Prénom Nom">
+
+      <label style="display:flex;gap:14px;align-items:flex-start;margin-top:20px;cursor:pointer;font-family:var(--font-corps);text-transform:none;letter-spacing:0;font-size:15px;color:var(--blanc);font-weight:400">
+        <input type="checkbox" id="signature_check" style="width:22px;height:22px;flex-shrink:0;margin-top:2px;accent-color:var(--jaune);cursor:pointer">
+        <span>Je soussigné·e <strong id="recap-nom" style="color:var(--jaune)">[ton nom]</strong>, certifie avoir lu et accepté les conditions ci-dessus pour ma performance à La Brassée le <strong id="recap-date" style="color:var(--jaune)">[date du show]</strong>.</span>
+      </label>
+
+      <div style="margin-top:12px;font-size:13px;color:var(--gris);font-style:italic">En cochant cette case et en envoyant ce formulaire, ta signature électronique sera horodatée et conservée par La Brassée comme preuve d'acceptation des conditions (valeur juridique au Québec — LCJTI, art. 39).</div>
+    </fieldset>
+
+    <div class="progress-bar" id="progress-bar"><div class="barre-prog" id="progress-barre"></div></div>
+    <div class="message" id="message"></div>
+
+    <div class="envoi">
+      <button type="button" class="envoyer" id="bouton-envoi">Envoyer à La Brassée</button>
+    </div>
+
+  </form>
+
+</main>
+
+<footer>
+  <div class="logo-svg-footer" id="logo-footer"></div>
+  <div class="nom-marque">LA BRASSÉE</div>
+  <div>Café · scène · galerie · Rosemont, Montréal</div>
+  <div style="margin-top:8px">Une question ? <a href="mailto:contact@labrassee.cafe">contact@labrassee.cafe</a></div>
+</footer>
+
+</div>
+
+<div id="app-erreur-token" class="ecran-token-invalide" style="display:none">
+  <h2>Ce lien n'est pas valide</h2>
+  <p>Ton lien semble incomplet ou expiré. Écris à Cédric pour qu'il t'en renvoie un.</p>
+  <a href="mailto:contact@labrassee.cafe">contact@labrassee.cafe</a>
+</div>
+
+<script>
+  async function chargerSVG(url, elementId) {
+    try {
+      const r = await fetch(url);
+      const svg = await r.text();
+      document.getElementById(elementId).innerHTML = svg;
+    } catch(e) { console.error('SVG ' + url, e); }
+  }
+  chargerSVG('picto_outlined_white.svg', 'watermark');
+  chargerSVG('full_logo_white.svg', 'logo-header');
+  chargerSVG('full_logo_white.svg', 'logo-footer');
+</script>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://xjlpttrziisldlclhsth.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqbHB0dHJ6aWlzbGRsY2xoc3RoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0NjkyODMsImV4cCI6MjA5MjA0NTI4M30.JpkTnJF1ZP08ybzFdM8fFUJOTiKYx8ltTe2nxiDPk24';
+  const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let artiste = null;
+  let concertLie = null;
+  let photoArtisteFichier = null;
+  const photosHD = [];
+
+  async function init() {
+    const chargement = document.getElementById('app-chargement');
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('t');
+      if (!token) {
+        chargement.style.display = 'none';
+        document.getElementById('app-erreur-token').style.display = 'flex';
+        return;
+      }
+      const { data, error } = await supa
+        .from('artistes_scene').select('*').eq('token_depot', token).maybeSingle();
+      if (error || !data) {
+        console.error('Erreur chargement artiste:', error);
+        chargement.style.display = 'none';
+        document.getElementById('app-erreur-token').style.display = 'flex';
+        return;
+      }
+      artiste = data;
+      // Concert lié (premier concert à venir de l'artiste)
+      const { data: ca } = await supa
+        .from('concerts_artistes').select('concert_id, concerts(date_show, heure_debut, heure_fin, heure_soundcheck, titre_show)')
+        .eq('artiste_id', artiste.id)
+        .order('concert_id');
+      if (ca && ca.length > 0 && ca[0].concerts) concertLie = ca[0].concerts;
+
+      chargement.style.display = 'none';
+      document.getElementById('app-charge').style.display = 'block';
+      document.getElementById('nom-artiste-accueil').textContent = artiste.nom_artiste;
+      if (concertLie) {
+        document.getElementById('date-show').textContent = formaterDate(concertLie.date_show);
+        document.getElementById('heure-soundcheck').textContent = concertLie.heure_soundcheck ? concertLie.heure_soundcheck.slice(0,5) : '— à confirmer';
+        document.getElementById('heures-show').textContent = (concertLie.heure_debut ? concertLie.heure_debut.slice(0,5) : '?') + ' → ' + (concertLie.heure_fin ? concertLie.heure_fin.slice(0,5) : '?');
+      } else {
+        document.getElementById('date-show').textContent = 'à confirmer';
+        document.getElementById('heure-soundcheck').textContent = 'à confirmer';
+        document.getElementById('heures-show').textContent = 'à confirmer';
+      }
+
+      // Préremplir les champs
+      const champs = ['bio','titre_set','genre','nb_personnes_scene','duree_set_minutes','cellulaire','instagram','facebook','site_web','spotify_url','bandcamp_url','soundcloud_url','youtube_url','vimeo_url','setlist','rider_technique','besoins_hospitality','signature_nom'];
+      champs.forEach(c => {
+        const el = document.getElementById(c);
+        if (el && artiste[c]) el.value = artiste[c];
+      });
+      if (!document.getElementById('signature_nom').value) {
+        document.getElementById('signature_nom').value = artiste.nom_complet || artiste.nom_artiste || '';
+      }
+      majRecapSignature();
+      if (artiste.signature_acceptee) document.getElementById('signature_check').checked = true;
+    } catch (err) {
+      console.error('Erreur init():', err);
+      chargement.innerHTML = '<div style="color:#ff6b6b;padding:24px;text-align:center;font-family:Lato,sans-serif;max-width:500px"><div style="font-family:Oswald,sans-serif;font-size:14px;letter-spacing:2px;text-transform:uppercase;color:#f7d135;margin-bottom:12px">Une erreur est survenue</div>' + (err.message || err) + '<br><br>Vérifie ta connexion et recharge la page. Si le problème persiste, écris à <a href="mailto:contact@labrassee.cafe" style="color:#f7d135">contact@labrassee.cafe</a>.</div>';
+    }
+  }
+
+  function majRecapSignature() {
+    if (!artiste) return;
+    const nom = (document.getElementById('signature_nom').value || '').trim() || '[ton nom]';
+    document.getElementById('recap-nom').textContent = nom;
+    document.getElementById('recap-date').textContent = concertLie ? formaterDate(concertLie.date_show) : 'à confirmer';
+  }
+  document.addEventListener('input', (e) => {
+    if (e.target && e.target.id === 'signature_nom') majRecapSignature();
+  });
+
+  function formaterDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso + 'T00:00:00');
+    const jours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+    const mois = ['janv.', 'févr.', 'mars', 'avril', 'mai', 'juin', 'juill.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+    return jours[d.getDay()] + ' ' + d.getDate() + ' ' + mois[d.getMonth()] + ' ' + d.getFullYear();
+  }
+
+  // Photo principale
+  const dzArtiste = document.getElementById('dropzone-artiste');
+  const photoArtisteInput = document.getElementById('photo-artiste-input');
+  const apercuArtiste = document.getElementById('apercu-artiste');
+  dzArtiste.addEventListener('click', () => photoArtisteInput.click());
+  dzArtiste.addEventListener('dragover', (e) => { e.preventDefault(); dzArtiste.classList.add('drag-actif'); });
+  dzArtiste.addEventListener('dragleave', () => dzArtiste.classList.remove('drag-actif'));
+  dzArtiste.addEventListener('drop', (e) => {
+    e.preventDefault(); dzArtiste.classList.remove('drag-actif');
+    if (e.dataTransfer.files.length > 0) traiterPhotoArtiste(e.dataTransfer.files[0]);
+  });
+  photoArtisteInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) traiterPhotoArtiste(e.target.files[0]);
+  });
+  function traiterPhotoArtiste(fichier) {
+    if (!fichier.type.startsWith('image/')) return;
+    photoArtisteFichier = fichier;
+    const reader = new FileReader();
+    reader.onload = (e) => { apercuArtiste.src = e.target.result; apercuArtiste.style.display = 'block'; };
+    reader.readAsDataURL(fichier);
+  }
+
+  // Batch photos HD
+  const dzBatch = document.getElementById('dropzone-batch');
+  const batchInput = document.getElementById('batch-input');
+  dzBatch.addEventListener('click', () => batchInput.click());
+  dzBatch.addEventListener('dragover', (e) => { e.preventDefault(); dzBatch.classList.add('drag-actif'); });
+  dzBatch.addEventListener('dragleave', () => dzBatch.classList.remove('drag-actif'));
+  dzBatch.addEventListener('drop', (e) => {
+    e.preventDefault(); dzBatch.classList.remove('drag-actif');
+    traiterBatch(e.dataTransfer.files);
+  });
+  batchInput.addEventListener('change', (e) => traiterBatch(e.target.files));
+
+  function traiterBatch(fichiers) {
+    Array.from(fichiers).forEach((f) => {
+      if (!f.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        photosHD.push({ fichier: f, apercu_dataurl: e.target.result, nom: f.name });
+        renderPhotos();
+      };
+      reader.readAsDataURL(f);
+    });
+  }
+
+  function renderPhotos() {
+    const zone = document.getElementById('photos-zone');
+    zone.innerHTML = '';
+    document.getElementById('nb-photos').textContent = photosHD.length;
+    photosHD.forEach((p, idx) => {
+      const carte = document.createElement('div');
+      carte.className = 'photo-carte';
+      carte.innerHTML = `
+        <div class="miniature" style="background-image:url('${p.apercu_dataurl}')"></div>
+        <div class="nom">${escaperHtml(p.nom)}<br><span style="font-size:11px;color:var(--gris)">${Math.round(p.fichier.size / 1024)} ko</span></div>
+        <button type="button" class="retirer" data-retirer="${idx}">Retirer</button>
+      `;
+      zone.appendChild(carte);
+    });
+    zone.querySelectorAll('button[data-retirer]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const i = parseInt(e.target.dataset.retirer);
+        photosHD.splice(i, 1);
+        renderPhotos();
+      });
+    });
+  }
+
+  function escaperHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  document.getElementById('bouton-envoi').addEventListener('click', envoyerTout);
+
+  async function envoyerTout() {
+    const bouton = document.getElementById('bouton-envoi');
+    const message = document.getElementById('message');
+    const progress = document.getElementById('progress-bar');
+    const barre = document.getElementById('progress-barre');
+
+    const bio = document.getElementById('bio').value.trim();
+    if (!bio && photosHD.length === 0) {
+      afficherMessage('erreur', 'Rien à envoyer', "Ajoute au moins ta bio ou une photo avant d'envoyer.");
+      return;
+    }
+
+    const signatureCheck = document.getElementById('signature_check').checked;
+    const signatureNom = document.getElementById('signature_nom').value.trim();
+    if (!signatureCheck || !signatureNom) {
+      afficherMessage('erreur', 'Signature requise', "Remplis ton nom complet et coche la case d'acceptation des conditions avant d'envoyer.");
+      document.querySelector('fieldset:last-of-type').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+
+    bouton.disabled = true;
+    bouton.textContent = 'Envoi en cours…';
+    progress.classList.add('actif');
+    message.classList.remove('actif');
+
+    try {
+      let photoArtistePath = artiste.photo_artiste_path || null;
+      if (photoArtisteFichier) {
+        photoArtistePath = await uploadFichier(photoArtisteFichier, `${artiste.token_depot}/artiste/${Date.now()}-${nettoyerNom(photoArtisteFichier.name)}`);
+      }
+      avancerProgress(barre, 10);
+
+      // Upload photos HD
+      const photosHDPaths = Array.isArray(artiste.photos_hd_paths) ? [...artiste.photos_hd_paths] : [];
+      const total = photosHD.length;
+      for (let i = 0; i < total; i++) {
+        const p = photosHD[i];
+        const path = `${artiste.token_depot}/photos-hd/${Date.now()}-${i}-${nettoyerNom(p.fichier.name)}`;
+        const chemin = await uploadFichier(p.fichier, path);
+        photosHDPaths.push(chemin);
+        avancerProgress(barre, 10 + Math.round(((i + 1) / Math.max(total,1)) * 60));
+      }
+      avancerProgress(barre, 75);
+
+      const champs = ['bio','titre_set','genre','cellulaire','instagram','facebook','site_web','spotify_url','bandcamp_url','soundcloud_url','youtube_url','vimeo_url','setlist','rider_technique','besoins_hospitality'];
+      const update = {};
+      champs.forEach(c => {
+        const v = (document.getElementById(c).value || '').trim();
+        update[c] = v || null;
+      });
+      const nbPS = document.getElementById('nb_personnes_scene').value;
+      const duree = document.getElementById('duree_set_minutes').value;
+      update.nb_personnes_scene = nbPS ? parseInt(nbPS) : null;
+      update.duree_set_minutes = duree ? parseInt(duree) : null;
+      update.photo_artiste_path = photoArtistePath;
+      update.photos_hd_paths = photosHDPaths;
+      update.signature_acceptee = true;
+      update.signature_nom = signatureNom;
+      update.signature_le = new Date().toISOString();
+      update.statut = 'depot_complet';
+
+      const { error: errMaj } = await supa
+        .from('artistes_scene').update(update).eq('token_depot', artiste.token_depot);
+      if (errMaj) throw errMaj;
+
+      avancerProgress(barre, 100);
+
+      afficherMessage('succes', '✓ Tout est arrivé à La Brassée', `Merci ${artiste.nom_artiste}. Cédric te reviendra rapidement. Tu peux fermer cette fenêtre, ou revenir plus tard pour ajouter d'autres photos ou ajuster ton rider.`);
+      bouton.textContent = 'Envoyé ✓';
+      photosHD.length = 0;
+      renderPhotos();
+      photoArtisteFichier = null;
+      apercuArtiste.style.display = 'none';
+    } catch (err) {
+      console.error(err);
+      afficherMessage('erreur', 'Un problème est survenu', `${err.message || err}. Réessaye dans un instant, ou écris à contact@labrassee.cafe.`);
+      bouton.disabled = false;
+      bouton.textContent = "Réessayer l'envoi";
+      progress.classList.remove('actif');
+      barre.style.width = '0%';
+    }
+  }
+
+  function nettoyerNom(nom) {
+    return nom.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9.-]/g, '_').toLowerCase();
+  }
+
+  async function uploadFichier(fichier, path) {
+    const { data, error } = await supa.storage.from('artistes-scene-epk').upload(path, fichier, { cacheControl: '3600', upsert: false });
+    if (error) throw error;
+    return data.path;
+  }
+
+  function avancerProgress(barre, pourcent) { barre.style.width = pourcent + '%'; }
+
+  function afficherMessage(type, titre, texte) {
+    const m = document.getElementById('message');
+    m.className = 'message actif ' + type;
+    m.innerHTML = `<div class="titre">${titre}</div><div>${texte}</div>`;
+  }
+
+  init();
+</script>
+
+</body>
+</html>
