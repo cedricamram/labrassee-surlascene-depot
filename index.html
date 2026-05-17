@@ -357,9 +357,9 @@
 <main class="container">
 
   <div class="accueil">
-    <h2>Salut <span id="nom-artiste-accueil">…</span> 🐝</h2>
-    <p>Cet espace privé te permet de déposer tout ce dont on a besoin pour ton passage à La Brassée : ta bio, ton EPK (photos HD, liens audio et vidéo), ton setlist et ton rider technique.</p>
-    <p>Tu peux remplir en plusieurs fois. Quand tu cliques « Envoyer », tout part vers Cédric.</p>
+    <h2 id="accueil-titre">Salut <span id="nom-artiste-accueil">…</span> 🐝</h2>
+    <p id="accueil-p1">Cet espace privé te permet de déposer tout ce dont on a besoin pour ton passage à La Brassée : ta bio, ton EPK (photos HD, liens audio et vidéo), ton setlist et ton rider technique.</p>
+    <p id="accueil-p2">Tu peux remplir en plusieurs fois. Quand tu cliques « Envoyer », tout part vers Cédric.</p>
     <p style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(247,209,53,0.2);font-size:14px;color:rgba(255,255,255,0.75)">🎤 <strong style="color:var(--jaune);font-weight:500">Soundcheck dès 18 h 30</strong> · début du show à <strong style="color:var(--jaune)">19 h 30</strong> · format <strong style="color:var(--jaune)">2 sets de 45 min · pause 15 min</strong>. C'est Cédric qui tient la console son.</p>
     <p style="font-size:14px;color:rgba(255,255,255,0.75);margin-top:10px">💸 <strong style="color:var(--jaune);font-weight:500">Rémunération</strong> · pas de billetterie, public en participation libre (chapeau) + <strong style="color:var(--jaune)">majoration 10 % sur les factures</strong> pendant le show, intégralement reversée à toi (et tes co-artistes s'il y en a). <strong style="color:var(--jaune)">30 $ de conso offerte</strong> par artiste (plafond 120 $/soirée).</p>
     <p style="font-size:14px;color:rgba(255,255,255,0.75);margin-top:10px">🎥 <strong style="color:var(--jaune);font-weight:500">Captation audio + vidéo stéréo sur clé USB</strong> · <strong style="color:var(--jaune)">40 $</strong> la prestation (option, dis-le-nous d'avance).</p>
@@ -371,6 +371,23 @@
   </div>
 
   <form id="formulaire" onsubmit="return false;">
+
+    <fieldset id="bloc-candidature" style="display:none">
+      <legend>Première candidature · présente-toi</legend>
+      <p style="color:rgba(255,255,255,0.75);font-size:14px;margin:0 0 14px">Cédric et Joshué reçoivent ta candidature et décident d'une date. Plus le dossier est complet, plus tu mets toutes les chances de ton côté.</p>
+      <div class="deux-cols">
+        <div>
+          <label for="nom_artiste_cand">Nom artiste / groupe *</label>
+          <input type="text" id="nom_artiste_cand" placeholder="Ex : Trio Choro de Quintal" required>
+        </div>
+        <div>
+          <label for="courriel_cand">Courriel *</label>
+          <input type="email" id="courriel_cand" placeholder="contact@exemple.com" required>
+        </div>
+      </div>
+      <label for="date_souhaitee_cand">Date(s) souhaitée(s) <span class="opt">(libre — on regarde ce qui matche)</span></label>
+      <input type="text" id="date_souhaitee_cand" placeholder="Ex : un vendredi de juin, ou « peu importe »">
+    </fieldset>
 
     <fieldset>
       <legend>Toi (ou votre groupe)</legend>
@@ -566,6 +583,7 @@
   let artiste = null;
   let concertLie = null;
   let photoArtisteFichier = null;
+  let modeCandidature = false; // true si premier dépôt sans token (candidature spontanée)
   const photosHD = [];
 
   async function init() {
@@ -573,6 +591,30 @@
     try {
       const params = new URLSearchParams(window.location.search);
       const token = params.get('t');
+      const candidature = params.get('candidature');
+      if (!token && candidature === 'scene') {
+        // Mode candidature spontanée : pas de token, on accueille un nouvel artiste
+        modeCandidature = true;
+        chargement.style.display = 'none';
+        document.getElementById('app-charge').style.display = 'block';
+        document.getElementById('accueil-titre').textContent = 'Bienvenue 🐝';
+        document.getElementById('accueil-p1').innerHTML = "<strong style=\"color:var(--jaune)\">Tu veux te faire voir sur notre scène ?</strong> Remplis ce formulaire — c'est ton premier filtre. Plus le dossier est rodé, plus on a envie de te programmer.";
+        document.getElementById('accueil-p2').textContent = "Cédric et Joshué te reviennent rapidement avec une date proposée.";
+        // Pas de bloc date show : on le cache
+        const dates = document.querySelector('.accueil .dates');
+        if (dates) dates.style.display = 'none';
+        // Affiche le bloc candidature (nom/email/date souhaitée)
+        document.getElementById('bloc-candidature').style.display = 'block';
+        // Pré-remplir signature_nom au fil de la frappe nom_artiste_cand
+        document.addEventListener('input', (e) => {
+          if (e.target && e.target.id === 'nom_artiste_cand') {
+            const sn = document.getElementById('signature_nom');
+            if (sn && !sn.value) sn.value = e.target.value;
+            majRecapSignature();
+          }
+        });
+        return;
+      }
       if (!token) {
         chargement.style.display = 'none';
         document.getElementById('app-erreur-token').style.display = 'flex';
@@ -625,10 +667,13 @@
   }
 
   function majRecapSignature() {
-    if (!artiste) return;
-    const nom = (document.getElementById('signature_nom').value || '').trim() || '[ton nom]';
-    document.getElementById('recap-nom').textContent = nom;
-    document.getElementById('recap-date').textContent = concertLie ? formaterDate(concertLie.date_show) : 'à confirmer';
+    if (!artiste && !modeCandidature) return;
+    const sn = document.getElementById('signature_nom');
+    const nom = (sn ? sn.value : '').trim() || '[ton nom]';
+    const recapNom = document.getElementById('recap-nom');
+    const recapDate = document.getElementById('recap-date');
+    if (recapNom) recapNom.textContent = nom;
+    if (recapDate) recapDate.textContent = concertLie ? formaterDate(concertLie.date_show) : 'à confirmer';
   }
   document.addEventListener('input', (e) => {
     if (e.target && e.target.id === 'signature_nom') majRecapSignature();
@@ -724,6 +769,22 @@
     const progress = document.getElementById('progress-bar');
     const barre = document.getElementById('progress-barre');
 
+    // En mode candidature : créer le profil artiste d'abord (INSERT)
+    if (modeCandidature) {
+      const nomCand = document.getElementById('nom_artiste_cand').value.trim();
+      const mailCand = document.getElementById('courriel_cand').value.trim();
+      if (!nomCand) {
+        afficherMessage('erreur', 'Nom requis', "Indique le nom de l'artiste ou du groupe avant d'envoyer.");
+        document.getElementById('nom_artiste_cand').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      if (!mailCand || !mailCand.includes('@')) {
+        afficherMessage('erreur', 'Courriel requis', "Indique un courriel valide pour qu'on puisse te répondre.");
+        document.getElementById('courriel_cand').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+    }
+
     const bio = document.getElementById('bio').value.trim();
     if (!bio && photosHD.length === 0) {
       afficherMessage('erreur', 'Rien à envoyer', "Ajoute au moins ta bio ou une photo avant d'envoyer.");
@@ -744,6 +805,27 @@
     message.classList.remove('actif');
 
     try {
+      // Mode candidature : crée l'artiste maintenant pour avoir un token_depot
+      if (modeCandidature && !artiste) {
+        const nomCand = document.getElementById('nom_artiste_cand').value.trim();
+        const mailCand = document.getElementById('courriel_cand').value.trim();
+        const dateCand = document.getElementById('date_souhaitee_cand').value.trim();
+        const slug = nomCand.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+        const rand = Math.random().toString(36).slice(2, 8);
+        const token = `surlascene-${slug || 'candidat'}-${rand}`;
+        const { data: nouveau, error: errIns } = await supa
+          .from('artistes_scene')
+          .insert({
+            nom_artiste: nomCand,
+            courriel: mailCand,
+            token_depot: token,
+            recurrence_notes: dateCand ? `Dates souhaitées : ${dateCand}` : null,
+          })
+          .select()
+          .single();
+        if (errIns) throw errIns;
+        artiste = nouveau;
+      }
       let photoArtistePath = artiste.photo_artiste_path || null;
       if (photoArtisteFichier) {
         photoArtistePath = await uploadFichier(photoArtisteFichier, `${artiste.token_depot}/artiste/${Date.now()}-${nettoyerNom(photoArtisteFichier.name)}`);
@@ -777,7 +859,7 @@
       update.signature_acceptee = true;
       update.signature_nom = signatureNom;
       update.signature_le = new Date().toISOString();
-      update.statut = 'depot_complet';
+      update.statut = modeCandidature ? 'candidature_complete' : 'depot_complet';
 
       const { error: errMaj } = await supa
         .from('artistes_scene').update(update).eq('token_depot', artiste.token_depot);
@@ -785,7 +867,10 @@
 
       avancerProgress(barre, 100);
 
-      afficherMessage('succes', '✓ Tout est arrivé à La Brassée', `Merci ${artiste.nom_artiste}. Cédric te reviendra rapidement. Tu peux fermer cette fenêtre, ou revenir plus tard pour ajouter d'autres photos ou ajuster ton rider.`);
+      const messageSucces = modeCandidature
+        ? `Merci ${artiste.nom_artiste}. Ta candidature est arrivée chez Cédric et Joshué. Ils te reviennent rapidement avec une date proposée. Garde précieusement ce lien personnel pour ajuster ton dossier plus tard : <code style="display:block;margin-top:10px;background:rgba(247,209,53,0.1);padding:8px;border-radius:6px;font-size:12px;word-break:break-all">${window.location.origin}/?t=${artiste.token_depot}</code>`
+        : `Merci ${artiste.nom_artiste}. Cédric te reviendra rapidement. Tu peux fermer cette fenêtre, ou revenir plus tard pour ajouter d'autres photos ou ajuster ton rider.`;
+      afficherMessage('succes', '✓ Tout est arrivé à La Brassée', messageSucces);
       bouton.textContent = 'Envoyé ✓';
       photosHD.length = 0;
       renderPhotos();
