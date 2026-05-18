@@ -605,6 +605,21 @@
         if (dates) dates.style.display = 'none';
         // Affiche le bloc candidature (nom/email/date souhaitée)
         document.getElementById('bloc-candidature').style.display = 'block';
+        // Pré-remplit la date souhaitée si arrivée depuis le calendrier
+        // /proposer avec ?date=YYYY-MM-DD
+        const dateParam = params.get('date');
+        if (dateParam) {
+          const dsc = document.getElementById('date_souhaitee_cand');
+          if (dsc) {
+            const m = dateParam.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (m) {
+              const jours = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+              const mois = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+              const dObj = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]));
+              dsc.value = jours[dObj.getDay()] + ' ' + parseInt(m[3]) + ' ' + mois[parseInt(m[2]) - 1] + ' ' + m[1];
+            }
+          }
+        }
         // Pré-remplir signature_nom au fil de la frappe nom_artiste_cand
         document.addEventListener('input', (e) => {
           if (e.target && e.target.id === 'nom_artiste_cand') {
