@@ -860,10 +860,33 @@
       avancerProgress(barre, 75);
 
       const champs = ['bio','titre_set','genre','cellulaire','instagram','facebook','site_web','spotify_url','bandcamp_url','soundcloud_url','youtube_url','vimeo_url','setlist','rider_technique','besoins_hospitality'];
+      // Champs URL stricts : si la valeur ne parse pas comme URL valide → null.
+      // Évite que des saisies comme "non.", "bof..." ou "le pire des voleurs!"
+      // cassent le rendu côté outils admin (qui font new URL() dessus).
+      // Pour les handles Instagram/Facebook, on accepte "@handle" sans crash.
+      const champsUrlStricts = new Set(['site_web','spotify_url','bandcamp_url','soundcloud_url','youtube_url','vimeo_url','facebook']);
+      function sanitizeUrl(v) {
+        if (!v) return null;
+        let s = String(v).trim();
+        if (!s) return null;
+        // Si pas de protocole, on tente https:// par défaut
+        if (!/^https?:\/\//i.test(s)) s = 'https://' + s;
+        try {
+          const u = new URL(s);
+          if (!u.hostname.includes('.')) return null; // "https://nopoint" rejeté
+          return u.toString();
+        } catch {
+          return null;
+        }
+      }
       const update = {};
       champs.forEach(c => {
-        const v = (document.getElementById(c).value || '').trim();
-        update[c] = v || null;
+        const raw = (document.getElementById(c).value || '').trim();
+        if (champsUrlStricts.has(c)) {
+          update[c] = sanitizeUrl(raw);
+        } else {
+          update[c] = raw || null;
+        }
       });
       const nbPS = document.getElementById('nb_personnes_scene').value;
       const duree = document.getElementById('duree_set_minutes').value;
