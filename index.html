@@ -506,7 +506,7 @@
       <div class="info-batch">
         Idéalement <strong>1 vidéo de présentation</strong> (60-90 s qui résume ton univers) OU <strong>1 à 3 extraits live choisis</strong> (les passages qui te rendent le mieux à la scène). Elles serviront pour TikTok, Reels Instagram, Stories et la TV Cuisine.
         <br><br>
-        Format <strong>MP4</strong> ou <strong>MOV</strong>, <strong>max 50 Mo par fichier</strong>. Si ton fichier est trop gros, exporte-le en 1080p depuis ton téléphone, ou compresse-le avec <a href="https://handbrake.fr/" target="_blank" rel="noopener" style="color:var(--jaune)">HandBrake</a> (gratuit, Mac/PC).
+        Format <strong>MP4</strong> ou <strong>MOV</strong>, <strong>max 40 Mo par fichier</strong>. Si ton fichier est trop gros, exporte-le en 1080p depuis ton téléphone, ou compresse-le avec <a href="https://handbrake.fr/" target="_blank" rel="noopener" style="color:var(--jaune)">HandBrake</a> (gratuit, Mac/PC).
         <br><br>
         💡 <strong>Astuce</strong> : une vidéo verticale (9:16) marche partout sans recadrage. Mais on prend tout ce que t'as.
         <br><br>
@@ -515,7 +515,7 @@
       <div class="dropzone-batch" id="dropzone-videos">
         <div class="icone">🎬</div>
         <div class="titre">Glisse tes vidéos ici</div>
-        <div class="hint">Ou clique pour parcourir · MP4, MOV ou WEBM · max 50 Mo</div>
+        <div class="hint">Ou clique pour parcourir · MP4, MOV ou WEBM · max 40 Mo</div>
         <input type="file" id="videos-input" accept="video/mp4,video/quicktime,video/webm" multiple>
       </div>
       <div class="compteur"><span id="nb-videos">0</span> vidéo(s) ajoutée(s) · <span id="taille-videos-total">0 Mo</span></div>
@@ -623,7 +623,7 @@
   const photosHD = [];
   const videos = [];
   const MAX_VIDEOS = 3;
-  const MAX_VIDEO_MO = 50;
+  const MAX_VIDEO_MO = 40;
 
   async function init() {
     const chargement = document.getElementById('app-chargement');
