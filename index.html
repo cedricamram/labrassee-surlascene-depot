@@ -82,6 +82,14 @@
   }
 
   #app-chargement, #app-charge, #app-erreur-token, header, main, footer { position: relative; z-index: 2; }
+
+  /* Catégorie d'artiste — masque les blocs musique-spécifiques si la catégorie n'est pas « musique ».
+     Le JS pose body.cat-<categorie> au chargement de l'artiste. */
+  body.cat-impro .cat-musique,
+  body.cat-poesie .cat-musique,
+  body.cat-conference .cat-musique,
+  body.cat-cabaret .cat-musique,
+  body.cat-autre .cat-musique { display: none !important; }
   .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
 
   #app-chargement {
@@ -358,14 +366,14 @@
 
   <div class="accueil">
     <h2 id="accueil-titre">Salut <span id="nom-artiste-accueil">…</span> 🐝</h2>
-    <p id="accueil-p1">Cet espace privé te permet de déposer tout ce dont on a besoin pour ton passage à La Brassée : ta bio, ton EPK (photos HD, liens audio et vidéo), ton setlist et ton rider technique.</p>
+    <p id="accueil-p1">Cet espace privé te permet de déposer tout ce dont on a besoin pour annoncer ton passage à La Brassée : présentation, photos et tout ce qui aide à monter la communication autour de ton show.</p>
     <p id="accueil-p2">Tu peux remplir en plusieurs fois. Quand tu cliques « Envoyer », tout part vers Cédric.</p>
-    <p style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(247,209,53,0.2);font-size:14px;color:rgba(255,255,255,0.75)">🎤 <strong style="color:var(--jaune);font-weight:500">Soundcheck dès 18 h 30</strong> · début du show à <strong style="color:var(--jaune)">19 h 30</strong> · format <strong style="color:var(--jaune)">2 sets de 45 min · pause 15 min</strong>. C'est Cédric qui tient la console son.</p>
-    <p style="font-size:14px;color:rgba(255,255,255,0.75);margin-top:10px">💸 <strong style="color:var(--jaune);font-weight:500">Rémunération</strong> · pas de billetterie, public en participation libre (chapeau) + <strong style="color:var(--jaune)">majoration 10 % sur les factures</strong> pendant le show, intégralement reversée à toi (et tes co-artistes s'il y en a). <strong style="color:var(--jaune)">30 $ de conso offerte</strong> par artiste (plafond 120 $/soirée).</p>
-    <p style="font-size:14px;color:rgba(255,255,255,0.75);margin-top:10px">🎥 <strong style="color:var(--jaune);font-weight:500">Captation audio + vidéo stéréo sur clé USB</strong> · <strong style="color:var(--jaune)">40 $</strong> la prestation (option, dis-le-nous d'avance).</p>
+    <p class="cat-musique" style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(247,209,53,0.2);font-size:14px;color:rgba(255,255,255,0.75)">🎤 <strong style="color:var(--jaune);font-weight:500">Soundcheck dès 18 h 30</strong> · début du show à <strong style="color:var(--jaune)">19 h 30</strong> · format <strong style="color:var(--jaune)">2 sets de 45 min · pause 15 min</strong>. C'est Cédric qui tient la console son.</p>
+    <p class="cat-musique" style="font-size:14px;color:rgba(255,255,255,0.75);margin-top:10px">💸 <strong style="color:var(--jaune);font-weight:500">Rémunération</strong> · pas de billetterie, public en participation libre (chapeau) + <strong style="color:var(--jaune)">majoration 10 % sur les factures</strong> pendant le show, intégralement reversée à toi (et tes co-artistes s'il y en a). <strong style="color:var(--jaune)">30 $ de conso offerte</strong> par artiste (plafond 120 $/soirée).</p>
+    <p class="cat-musique" style="font-size:14px;color:rgba(255,255,255,0.75);margin-top:10px">🎥 <strong style="color:var(--jaune);font-weight:500">Captation audio + vidéo stéréo sur clé USB</strong> · <strong style="color:var(--jaune)">40 $</strong> la prestation (option, dis-le-nous d'avance).</p>
     <div class="dates">
       <div><strong>Date du show</strong><span id="date-show">…</span></div>
-      <div><strong>Soundcheck</strong><span id="heure-soundcheck">…</span></div>
+      <div class="cat-musique"><strong>Soundcheck</strong><span id="heure-soundcheck">…</span></div>
       <div><strong>Show</strong><span id="heures-show">…</span></div>
     </div>
   </div>
@@ -453,15 +461,15 @@
           <label for="site_web">🌐 Site web</label>
           <input type="url" id="site_web" placeholder="https://...">
         </div>
-        <div class="lien-bloc">
+        <div class="lien-bloc cat-musique">
           <label for="spotify_url">🎧 Spotify</label>
           <input type="url" id="spotify_url" placeholder="https://open.spotify.com/...">
         </div>
-        <div class="lien-bloc">
+        <div class="lien-bloc cat-musique">
           <label for="bandcamp_url">💿 Bandcamp</label>
           <input type="url" id="bandcamp_url" placeholder="https://...bandcamp.com">
         </div>
-        <div class="lien-bloc">
+        <div class="lien-bloc cat-musique">
           <label for="soundcloud_url">🔊 SoundCloud</label>
           <input type="url" id="soundcloud_url" placeholder="https://soundcloud.com/...">
         </div>
@@ -491,13 +499,13 @@
       <div class="photos-zone" id="photos-zone"></div>
     </fieldset>
 
-    <fieldset>
+    <fieldset class="cat-musique">
       <legend>Setlist</legend>
       <label for="setlist">Setlist prévisionnel <span class="opt">(ordre + titres, ou juste une liste, peu importe le format)</span></label>
       <textarea id="setlist" placeholder="1. Minor Swing&#10;2. Nuages&#10;3. Belleville&#10;..."></textarea>
     </fieldset>
 
-    <fieldset>
+    <fieldset class="cat-musique">
       <legend>Rider technique</legend>
       <label for="rider_technique">Ce dont tu as besoin sur scène <span class="opt">(matos perso · besoins son et lumière · ce que tu apportes vs ce que tu attends de nous)</span></label>
       <textarea id="rider_technique" placeholder="Ex : J'apporte ma guitare et mon ampli Fender Princeton. Besoin d'1 micro voix sur pied + 1 micro instrument pour la guitare. Pas besoin de retour, je m'entends bien à l'ampli."></textarea>
@@ -512,15 +520,15 @@
       <div style="background:rgba(0,0,0,0.25);padding:18px 22px;margin-bottom:18px;border-left:3px solid var(--jaune);border-radius:4px;font-size:14px;color:var(--blanc-doux);line-height:1.6">
         <div style="font-family:var(--font-titre);text-transform:uppercase;letter-spacing:2px;font-size:12px;color:var(--jaune);margin-bottom:10px">Conditions du partenariat</div>
         <ul style="list-style:none;padding:0;margin:0">
-          <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">🎤 <strong style="color:var(--jaune)">Soundcheck dès 18 h 30</strong> · début show 19 h 30 · format 2 sets de 45 min + pause 15 min</li>
-          <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">💸 <strong style="color:var(--jaune)">Aucune billetterie</strong> · public en participation libre (chapeau, dons en main propre)</li>
-          <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">💵 <strong style="color:var(--jaune)">Majoration 10 % sur les factures</strong> pendant le show · <strong style="color:var(--jaune)">100 % reversée aux artistes</strong> (La Brassée ne prélève rien)</li>
-          <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">🍻 <strong style="color:var(--jaune)">30 $ de conso offerte minimum</strong> par artiste · plafond 120 $/soirée</li>
-          <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">🎥 <strong style="color:var(--jaune)">Captation audio + vidéo stéréo USB disponible</strong> · 40 $/prestation (option)</li>
-          <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">📅 Un artiste peut revenir <strong style="color:var(--jaune)">maximum 3 fois par année calendrier</strong> (on aime faire tourner)</li>
+          <li class="cat-musique" style="padding:6px 0;border-bottom:1px solid var(--glass-border)">🎤 <strong style="color:var(--jaune)">Soundcheck dès 18 h 30</strong> · début show 19 h 30 · format 2 sets de 45 min + pause 15 min</li>
+          <li class="cat-musique" style="padding:6px 0;border-bottom:1px solid var(--glass-border)">💸 <strong style="color:var(--jaune)">Aucune billetterie</strong> · public en participation libre (chapeau, dons en main propre)</li>
+          <li class="cat-musique" style="padding:6px 0;border-bottom:1px solid var(--glass-border)">💵 <strong style="color:var(--jaune)">Majoration 10 % sur les factures</strong> pendant le show · <strong style="color:var(--jaune)">100 % reversée aux artistes</strong> (La Brassée ne prélève rien)</li>
+          <li class="cat-musique" style="padding:6px 0;border-bottom:1px solid var(--glass-border)">🍻 <strong style="color:var(--jaune)">30 $ de conso offerte minimum</strong> par artiste · plafond 120 $/soirée</li>
+          <li class="cat-musique" style="padding:6px 0;border-bottom:1px solid var(--glass-border)">🎥 <strong style="color:var(--jaune)">Captation audio + vidéo stéréo USB disponible</strong> · 40 $/prestation (option)</li>
+          <li class="cat-musique" style="padding:6px 0;border-bottom:1px solid var(--glass-border)">📅 Un artiste peut revenir <strong style="color:var(--jaune)">maximum 3 fois par année calendrier</strong> (on aime faire tourner)</li>
           <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">📷 Droit d'image pour la communication du show (et 6 mois après), nom de l'artiste systématiquement mentionné</li>
           <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">❌ Annulation : préavis de <strong style="color:var(--jaune)">7 jours minimum</strong>, sauf force majeure</li>
-          <li style="padding:6px 0">🛡️ Responsabilité matériel : l'artiste est responsable de son matos personnel · La Brassée fournit ce qui est listé au dossier technique</li>
+          <li style="padding:6px 0">🛡️ Responsabilité matériel : tu es responsable de ton matos personnel · La Brassée fournit ce qui est listé au dossier technique</li>
         </ul>
       </div>
 
@@ -654,6 +662,8 @@
       chargement.style.display = 'none';
       document.getElementById('app-charge').style.display = 'block';
       document.getElementById('nom-artiste-accueil').textContent = artiste.nom_artiste;
+      const categorie = (artiste.categorie || 'musique').toLowerCase();
+      document.body.classList.add('cat-' + categorie);
       if (concertLie) {
         document.getElementById('date-show').textContent = formaterDate(concertLie.date_show);
         document.getElementById('heure-soundcheck').textContent = concertLie.heure_soundcheck ? concertLie.heure_soundcheck.slice(0,5) : '— à confirmer';
