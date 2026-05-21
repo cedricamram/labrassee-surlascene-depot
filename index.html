@@ -501,6 +501,23 @@
       <div class="photos-zone" id="photos-zone"></div>
     </fieldset>
 
+    <fieldset>
+      <legend>Vidéos pour la comm <span class="opt">(optionnel)</span></legend>
+      <div class="info-batch">
+        Glisse jusqu'à 3 vidéos courtes (teaser, extrait scène, présentation). Format <strong>MP4</strong> ou <strong>MOV</strong>, <strong>max 50 Mo par fichier</strong>, durée idéale <strong>60 à 90 secondes</strong>. Elles serviront pour TikTok, Reels Instagram et la TV Cuisine.
+        <br><br>
+        Si ton fichier est trop gros, exporte-le en 1080p depuis ton téléphone, ou compresse-le avec <a href="https://handbrake.fr/" target="_blank" rel="noopener" style="color:var(--jaune)">HandBrake</a> (gratuit, Mac/PC).
+      </div>
+      <div class="dropzone-batch" id="dropzone-videos">
+        <div class="icone">🎬</div>
+        <div class="titre">Glisse tes vidéos ici</div>
+        <div class="hint">Ou clique pour parcourir · MP4, MOV ou WEBM · max 50 Mo</div>
+        <input type="file" id="videos-input" accept="video/mp4,video/quicktime,video/webm" multiple>
+      </div>
+      <div class="compteur"><span id="nb-videos">0</span> vidéo(s) ajoutée(s) · <span id="taille-videos-total">0 Mo</span></div>
+      <div class="photos-zone" id="videos-zone"></div>
+    </fieldset>
+
     <fieldset class="cat-musique">
       <legend>Setlist</legend>
       <label for="setlist">Setlist prévisionnel <span class="opt">(ordre + titres, ou juste une liste, peu importe le format)</span></label>
@@ -600,6 +617,9 @@
   let photoArtisteFichier = null;
   let modeCandidature = false; // true si premier dépôt sans token (candidature spontanée)
   const photosHD = [];
+  const videos = [];
+  const MAX_VIDEOS = 3;
+  const MAX_VIDEO_MO = 50;
 
   async function init() {
     const chargement = document.getElementById('app-chargement');
@@ -788,6 +808,72 @@
     });
   }
 
+  // ----- Vidéos -----
+  const dzVideos = document.getElementById('dropzone-videos');
+  const videosInput = document.getElementById('videos-input');
+  dzVideos.addEventListener('click', () => videosInput.click());
+  dzVideos.addEventListener('dragover', (e) => { e.preventDefault(); dzVideos.classList.add('drag-actif'); });
+  dzVideos.addEventListener('dragleave', () => dzVideos.classList.remove('drag-actif'));
+  dzVideos.addEventListener('drop', (e) => {
+    e.preventDefault(); dzVideos.classList.remove('drag-actif');
+    traiterBatchVideos(e.dataTransfer.files);
+  });
+  videosInput.addEventListener('change', (e) => {
+    traiterBatchVideos(e.target.files);
+    e.target.value = ''; // reset pour pouvoir re-déposer le même fichier après suppression
+  });
+
+  function traiterBatchVideos(fichiers) {
+    const MIME_OK = ['video/mp4','video/quicktime','video/webm'];
+    const refus = [];
+    Array.from(fichiers).forEach((f) => {
+      if (videos.length >= MAX_VIDEOS) {
+        refus.push(`${f.name} — limite de ${MAX_VIDEOS} vidéos atteinte`);
+        return;
+      }
+      const mimeOk = MIME_OK.includes(f.type) || /\.(mp4|mov|webm)$/i.test(f.name);
+      if (!mimeOk) {
+        refus.push(`${f.name} — format non accepté (MP4, MOV ou WEBM seulement)`);
+        return;
+      }
+      const tailleMo = f.size / 1024 / 1024;
+      if (tailleMo > MAX_VIDEO_MO) {
+        refus.push(`${f.name} — ${tailleMo.toFixed(1)} Mo, max ${MAX_VIDEO_MO} Mo (exporte en 1080p ou utilise HandBrake)`);
+        return;
+      }
+      videos.push({ fichier: f, nom: f.name, taille_mo: tailleMo });
+    });
+    renderVideos();
+    if (refus.length > 0) {
+      afficherMessage('erreur', refus.length + ' fichier(s) refusé(s)', refus.join('<br>'));
+    }
+  }
+
+  function renderVideos() {
+    const zone = document.getElementById('videos-zone');
+    zone.innerHTML = '';
+    document.getElementById('nb-videos').textContent = videos.length;
+    const totalMo = videos.reduce((s, v) => s + v.taille_mo, 0);
+    document.getElementById('taille-videos-total').textContent = totalMo.toFixed(1) + ' Mo';
+    videos.forEach((v, idx) => {
+      const carte = document.createElement('div');
+      carte.className = 'photo-carte';
+      carte.innerHTML = `
+        <div class="miniature" style="display:flex;align-items:center;justify-content:center;font-size:32px;background:rgba(247,209,53,0.10)">🎬</div>
+        <div class="nom">${escaperHtml(v.nom)}<br><span style="font-size:11px;color:var(--gris)">${v.taille_mo.toFixed(1)} Mo</span></div>
+        <button type="button" class="retirer" data-retirer-video="${idx}">Retirer</button>
+      `;
+      zone.appendChild(carte);
+    });
+    zone.querySelectorAll('button[data-retirer-video]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const i = parseInt(e.target.dataset.retirerVideo);
+        videos.splice(i, 1);
+        renderVideos();
+      });
+    });
+  }
+
   function escaperHtml(s) {
     if (!s) return '';
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -872,7 +958,19 @@
         const path = `${artiste.token_depot}/photos-hd/${Date.now()}-${i}-${nettoyerNom(p.fichier.name)}`;
         const chemin = await uploadFichier(p.fichier, path);
         photosHDPaths.push(chemin);
-        avancerProgress(barre, 10 + Math.round(((i + 1) / Math.max(total,1)) * 60));
+        avancerProgress(barre, 10 + Math.round(((i + 1) / Math.max(total,1)) * 50));
+      }
+      avancerProgress(barre, 60);
+
+      // Upload vidéos
+      const videosPaths = Array.isArray(artiste.videos_paths) ? [...artiste.videos_paths] : [];
+      const totalVideos = videos.length;
+      for (let i = 0; i < totalVideos; i++) {
+        const v = videos[i];
+        const path = `${artiste.token_depot}/videos/${Date.now()}-${i}-${nettoyerNom(v.fichier.name)}`;
+        const chemin = await uploadFichier(v.fichier, path);
+        videosPaths.push(chemin);
+        avancerProgress(barre, 60 + Math.round(((i + 1) / Math.max(totalVideos,1)) * 15));
       }
       avancerProgress(barre, 75);
 
@@ -911,6 +1009,7 @@
       update.duree_set_minutes = duree ? parseInt(duree) : null;
       update.photo_artiste_path = photoArtistePath;
       update.photos_hd_paths = photosHDPaths;
+      update.videos_paths = videosPaths;
       update.signature_acceptee = true;
       update.signature_nom = signatureNom;
       update.signature_le = new Date().toISOString();
@@ -929,6 +1028,8 @@
       bouton.textContent = 'Envoyé ✓';
       photosHD.length = 0;
       renderPhotos();
+      videos.length = 0;
+      renderVideos();
       photoArtisteFichier = null;
       apercuArtiste.style.display = 'none';
     } catch (err) {
