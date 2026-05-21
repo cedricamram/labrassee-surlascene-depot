@@ -83,13 +83,15 @@
 
   #app-chargement, #app-charge, #app-erreur-token, header, main, footer { position: relative; z-index: 2; }
 
-  /* Catégorie d'artiste — masque les blocs musique-spécifiques si la catégorie n'est pas « musique ».
+  /* Catégorie d'artiste — masque les blocs musique-spécifiques si la catégorie n'est pas « musique »,
+     et inversement les blocs « non-musique » quand on est en catégorie musique.
      Le JS pose body.cat-<categorie> au chargement de l'artiste. */
   body.cat-impro .cat-musique,
   body.cat-poesie .cat-musique,
   body.cat-conference .cat-musique,
   body.cat-cabaret .cat-musique,
   body.cat-autre .cat-musique { display: none !important; }
+  body.cat-musique .cat-non-musique { display: none !important; }
   .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
 
   #app-chargement {
@@ -517,19 +519,24 @@
 
     <fieldset>
       <legend>Signature</legend>
-      <div style="background:rgba(0,0,0,0.25);padding:18px 22px;margin-bottom:18px;border-left:3px solid var(--jaune);border-radius:4px;font-size:14px;color:var(--blanc-doux);line-height:1.6">
+
+      <div class="cat-musique" style="background:rgba(0,0,0,0.25);padding:18px 22px;margin-bottom:18px;border-left:3px solid var(--jaune);border-radius:4px;font-size:14px;color:var(--blanc-doux);line-height:1.6">
         <div style="font-family:var(--font-titre);text-transform:uppercase;letter-spacing:2px;font-size:12px;color:var(--jaune);margin-bottom:10px">Conditions du partenariat</div>
         <ul style="list-style:none;padding:0;margin:0">
-          <li class="cat-musique" style="padding:6px 0;border-bottom:1px solid var(--glass-border)">🎤 <strong style="color:var(--jaune)">Soundcheck dès 18 h 30</strong> · début show 19 h 30 · format 2 sets de 45 min + pause 15 min</li>
-          <li class="cat-musique" style="padding:6px 0;border-bottom:1px solid var(--glass-border)">💸 <strong style="color:var(--jaune)">Aucune billetterie</strong> · public en participation libre (chapeau, dons en main propre)</li>
-          <li class="cat-musique" style="padding:6px 0;border-bottom:1px solid var(--glass-border)">💵 <strong style="color:var(--jaune)">Majoration 10 % sur les factures</strong> pendant le show · <strong style="color:var(--jaune)">100 % reversée aux artistes</strong> (La Brassée ne prélève rien)</li>
-          <li class="cat-musique" style="padding:6px 0;border-bottom:1px solid var(--glass-border)">🍻 <strong style="color:var(--jaune)">30 $ de conso offerte minimum</strong> par artiste · plafond 120 $/soirée</li>
-          <li class="cat-musique" style="padding:6px 0;border-bottom:1px solid var(--glass-border)">🎥 <strong style="color:var(--jaune)">Captation audio + vidéo stéréo USB disponible</strong> · 40 $/prestation (option)</li>
-          <li class="cat-musique" style="padding:6px 0;border-bottom:1px solid var(--glass-border)">📅 Un artiste peut revenir <strong style="color:var(--jaune)">maximum 3 fois par année calendrier</strong> (on aime faire tourner)</li>
+          <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">🎤 <strong style="color:var(--jaune)">Soundcheck dès 18 h 30</strong> · début show 19 h 30 · format 2 sets de 45 min + pause 15 min</li>
+          <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">💸 <strong style="color:var(--jaune)">Aucune billetterie</strong> · public en participation libre (chapeau, dons en main propre)</li>
+          <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">💵 <strong style="color:var(--jaune)">Majoration 10 % sur les factures</strong> pendant le show · <strong style="color:var(--jaune)">100 % reversée aux artistes</strong> (La Brassée ne prélève rien)</li>
+          <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">🍻 <strong style="color:var(--jaune)">30 $ de conso offerte minimum</strong> par artiste · plafond 120 $/soirée</li>
+          <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">🎥 <strong style="color:var(--jaune)">Captation audio + vidéo stéréo USB disponible</strong> · 40 $/prestation (option)</li>
+          <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">📅 Un artiste peut revenir <strong style="color:var(--jaune)">maximum 3 fois par année calendrier</strong> (on aime faire tourner)</li>
           <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">📷 Droit d'image pour la communication du show (et 6 mois après), nom de l'artiste systématiquement mentionné</li>
           <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">❌ Annulation : préavis de <strong style="color:var(--jaune)">7 jours minimum</strong>, sauf force majeure</li>
           <li style="padding:6px 0">🛡️ Responsabilité matériel : tu es responsable de ton matos personnel · La Brassée fournit ce qui est listé au dossier technique</li>
         </ul>
+      </div>
+
+      <div class="cat-non-musique" style="background:rgba(0,0,0,0.25);padding:18px 22px;margin-bottom:18px;border-left:3px solid var(--jaune);border-radius:4px;font-size:14px;color:var(--blanc-doux);line-height:1.6">
+        Les modalités de ta présence à La Brassée sont définies directement avec Cédric, hors de ce formulaire. En signant ici, tu confirmes simplement ta participation et tu autorises La Brassée à utiliser les éléments déposés (présentation, photos, vidéos, liens) pour assurer la communication autour de ta soirée.
       </div>
 
       <label for="signature_nom">Ton nom complet (ou nom du référent du groupe) <span class="opt">(pour la signature)</span></label>
@@ -537,10 +544,10 @@
 
       <label style="display:flex;gap:14px;align-items:flex-start;margin-top:20px;cursor:pointer;font-family:var(--font-corps);text-transform:none;letter-spacing:0;font-size:15px;color:var(--blanc);font-weight:400">
         <input type="checkbox" id="signature_check" style="width:22px;height:22px;flex-shrink:0;margin-top:2px;accent-color:var(--jaune);cursor:pointer">
-        <span>Je soussigné·e <strong id="recap-nom" style="color:var(--jaune)">[ton nom]</strong>, certifie avoir lu et accepté les conditions ci-dessus pour ma performance à La Brassée le <strong id="recap-date" style="color:var(--jaune)">[date du show]</strong>.</span>
+        <span>Je soussigné·e <strong id="recap-nom" style="color:var(--jaune)">[ton nom]</strong>, confirme ma participation à La Brassée le <strong id="recap-date" style="color:var(--jaune)">[date du show]</strong>.</span>
       </label>
 
-      <div style="margin-top:12px;font-size:13px;color:var(--gris);font-style:italic">En cochant cette case et en envoyant ce formulaire, ta signature électronique sera horodatée et conservée par La Brassée comme preuve d'acceptation des conditions (valeur juridique au Québec — LCJTI, art. 39).</div>
+      <div style="margin-top:12px;font-size:13px;color:var(--gris);font-style:italic">En cochant cette case et en envoyant ce formulaire, ta signature électronique sera horodatée et conservée par La Brassée comme preuve de ton accord (valeur juridique au Québec — LCJTI, art. 39).</div>
     </fieldset>
 
     <div class="progress-bar" id="progress-bar"><div class="barre-prog" id="progress-barre"></div></div>
