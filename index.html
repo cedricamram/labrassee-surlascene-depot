@@ -446,23 +446,48 @@
     </fieldset>
 
     <fieldset>
-      <legend>Liens (EPK)</legend>
+      <legend>Réseaux sociaux</legend>
       <div class="info-batch">
-        Colle ici tous les liens utiles à ta promo et à l'écoute. Au moins 1 lien audio est fortement recommandé pour qu'on puisse découvrir ton univers.
+        On utilise tes comptes officiels pour te taguer dans la comm. Si ton compte perso est différent et plus actif/suivi, ajoute-le aussi — ça nous aide à mesurer ton tirage local et à inviter le bon public. Tu peux ne remplir qu'un côté à la fois.
       </div>
       <div class="liens-grille">
         <div class="lien-bloc">
-          <label for="instagram">📷 Instagram</label>
-          <input type="text" id="instagram" placeholder="@ton-compte ou URL">
+          <label for="instagram">📷 Instagram — compte artiste (officiel)</label>
+          <input type="text" id="instagram" placeholder="@ton-projet ou URL">
         </div>
         <div class="lien-bloc">
-          <label for="facebook">👍 Facebook</label>
-          <input type="url" id="facebook" placeholder="https://facebook.com/...">
+          <label for="instagram_perso">📷 Instagram — perso (si différent)</label>
+          <input type="text" id="instagram_perso" placeholder="@ton-compte-perso (optionnel)">
+        </div>
+        <div class="lien-bloc">
+          <label for="facebook">👍 Facebook — page artiste (officielle)</label>
+          <input type="url" id="facebook" placeholder="https://facebook.com/ton-projet">
+        </div>
+        <div class="lien-bloc">
+          <label for="facebook_perso">👍 Facebook — perso (si différent)</label>
+          <input type="url" id="facebook_perso" placeholder="https://facebook.com/ton-profil (optionnel)">
+        </div>
+        <div class="lien-bloc">
+          <label for="tiktok">🎵 TikTok — compte artiste (officiel)</label>
+          <input type="text" id="tiktok" placeholder="@ton-projet ou URL">
+        </div>
+        <div class="lien-bloc">
+          <label for="tiktok_perso">🎵 TikTok — perso (si différent)</label>
+          <input type="text" id="tiktok_perso" placeholder="@ton-compte-perso (optionnel)">
         </div>
         <div class="lien-bloc">
           <label for="site_web">🌐 Site web</label>
           <input type="url" id="site_web" placeholder="https://...">
         </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Liens d'écoute (EPK)</legend>
+      <div class="info-batch">
+        Au moins 1 lien audio est fortement recommandé pour qu'on puisse découvrir ton univers — c'est la base de la décision.
+      </div>
+      <div class="liens-grille">
         <div class="lien-bloc cat-musique">
           <label for="spotify_url">🎧 Spotify</label>
           <input type="url" id="spotify_url" placeholder="https://open.spotify.com/...">
@@ -706,7 +731,7 @@
       }
 
       // Préremplir les champs
-      const champs = ['bio','titre_set','genre','nb_personnes_scene','duree_set_minutes','cellulaire','instagram','facebook','site_web','spotify_url','bandcamp_url','soundcloud_url','youtube_url','vimeo_url','setlist','rider_technique','besoins_hospitality','signature_nom'];
+      const champs = ['bio','titre_set','genre','nb_personnes_scene','duree_set_minutes','cellulaire','instagram','instagram_perso','facebook','facebook_perso','tiktok','tiktok_perso','site_web','spotify_url','bandcamp_url','soundcloud_url','youtube_url','vimeo_url','setlist','rider_technique','besoins_hospitality','signature_nom'];
       champs.forEach(c => {
         const el = document.getElementById(c);
         if (el && artiste[c]) el.value = artiste[c];
@@ -978,12 +1003,12 @@
       }
       avancerProgress(barre, 75);
 
-      const champs = ['bio','titre_set','genre','cellulaire','instagram','facebook','site_web','spotify_url','bandcamp_url','soundcloud_url','youtube_url','vimeo_url','setlist','rider_technique','besoins_hospitality'];
+      const champs = ['bio','titre_set','genre','cellulaire','instagram','instagram_perso','facebook','facebook_perso','tiktok','tiktok_perso','site_web','spotify_url','bandcamp_url','soundcloud_url','youtube_url','vimeo_url','setlist','rider_technique','besoins_hospitality'];
       // Champs URL stricts : si la valeur ne parse pas comme URL valide → null.
       // Évite que des saisies comme "non.", "bof..." ou "le pire des voleurs!"
       // cassent le rendu côté outils admin (qui font new URL() dessus).
-      // Pour les handles Instagram/Facebook, on accepte "@handle" sans crash.
-      const champsUrlStricts = new Set(['site_web','spotify_url','bandcamp_url','soundcloud_url','youtube_url','vimeo_url','facebook']);
+      // Pour les handles Instagram/Facebook/TikTok, on accepte "@handle" sans crash.
+      const champsUrlStricts = new Set(['site_web','spotify_url','bandcamp_url','soundcloud_url','youtube_url','vimeo_url','facebook','facebook_perso']);
       function sanitizeUrl(v) {
         if (!v) return null;
         let s = String(v).trim();
