@@ -385,18 +385,11 @@
     <fieldset id="bloc-candidature" style="display:none">
       <legend>Première candidature · présente-toi</legend>
       <p style="color:rgba(255,255,255,0.75);font-size:14px;margin:0 0 14px">Cédric et Joshué reçoivent ta candidature et décident d'une date. Plus le dossier est complet, plus tu mets toutes les chances de ton côté.</p>
-      <div class="deux-cols">
-        <div>
-          <label for="nom_artiste_cand">Nom artiste / groupe *</label>
-          <input type="text" id="nom_artiste_cand" placeholder="Ex : Trio Choro de Quintal" required>
-        </div>
-        <div>
-          <label for="courriel_cand">Courriel *</label>
-          <input type="email" id="courriel_cand" placeholder="contact@exemple.com" required>
-        </div>
-      </div>
+      <label for="nom_artiste_cand">Nom artiste / groupe *</label>
+      <input type="text" id="nom_artiste_cand" placeholder="Ex : Trio Choro de Quintal" required>
       <label for="date_souhaitee_cand">Date(s) souhaitée(s) <span class="opt">(libre — on regarde ce qui matche)</span></label>
       <input type="text" id="date_souhaitee_cand" placeholder="Ex : un vendredi de juin, ou « peu importe »">
+      <p style="color:rgba(255,255,255,0.55);font-size:13px;margin:14px 0 0;font-style:italic">👇 Renseigne ton courriel et cellulaire dans le bloc « Toi » ci-dessous — ils sont essentiels pour qu'on puisse te répondre.</p>
     </fieldset>
 
     <fieldset>
@@ -429,9 +422,16 @@
 
       <div class="deux-cols">
         <div>
+          <label for="courriel">Courriel <span class="opt">(pour qu'on puisse te répondre et coordonner)</span></label>
+          <input type="email" id="courriel" placeholder="contact@exemple.com">
+        </div>
+        <div>
           <label for="cellulaire">Cellulaire <span class="opt">(pour te joindre le jour du show)</span></label>
           <input type="tel" id="cellulaire" placeholder="514 555 1234">
         </div>
+      </div>
+
+      <div class="deux-cols">
         <div>
           <label>Photo principale <span class="opt">(format carré ou portrait, JPG/PNG)</span></label>
           <div class="dropzone-artiste" id="dropzone-artiste">
@@ -731,7 +731,7 @@
       }
 
       // Préremplir les champs
-      const champs = ['bio','titre_set','genre','nb_personnes_scene','duree_set_minutes','cellulaire','instagram','instagram_perso','facebook','facebook_perso','tiktok','tiktok_perso','site_web','spotify_url','bandcamp_url','soundcloud_url','youtube_url','vimeo_url','setlist','rider_technique','besoins_hospitality','signature_nom'];
+      const champs = ['bio','titre_set','genre','nb_personnes_scene','duree_set_minutes','courriel','cellulaire','instagram','instagram_perso','facebook','facebook_perso','tiktok','tiktok_perso','site_web','spotify_url','bandcamp_url','soundcloud_url','youtube_url','vimeo_url','setlist','rider_technique','besoins_hospitality','signature_nom'];
       champs.forEach(c => {
         const el = document.getElementById(c);
         if (el && artiste[c]) el.value = artiste[c];
@@ -916,18 +916,18 @@
     const progress = document.getElementById('progress-bar');
     const barre = document.getElementById('progress-barre');
 
-    // En mode candidature : créer le profil artiste d'abord (INSERT)
+    // En mode candidature : valider nom + courriel (lus depuis le champ unifié `courriel` du bloc « Toi »)
     if (modeCandidature) {
       const nomCand = document.getElementById('nom_artiste_cand').value.trim();
-      const mailCand = document.getElementById('courriel_cand').value.trim();
+      const mailCand = document.getElementById('courriel').value.trim();
       if (!nomCand) {
         afficherMessage('erreur', 'Nom requis', "Indique le nom de l'artiste ou du groupe avant d'envoyer.");
         document.getElementById('nom_artiste_cand').scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
       if (!mailCand || !mailCand.includes('@')) {
-        afficherMessage('erreur', 'Courriel requis', "Indique un courriel valide pour qu'on puisse te répondre.");
-        document.getElementById('courriel_cand').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        afficherMessage('erreur', 'Courriel requis', "Indique un courriel valide dans le bloc « Toi (ou votre groupe) » pour qu'on puisse te répondre.");
+        document.getElementById('courriel').scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
     }
@@ -955,7 +955,7 @@
       // Mode candidature : crée l'artiste maintenant pour avoir un token_depot
       if (modeCandidature && !artiste) {
         const nomCand = document.getElementById('nom_artiste_cand').value.trim();
-        const mailCand = document.getElementById('courriel_cand').value.trim();
+        const mailCand = document.getElementById('courriel').value.trim();
         const dateCand = document.getElementById('date_souhaitee_cand').value.trim();
         const slug = nomCand.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
         const rand = Math.random().toString(36).slice(2, 8);
@@ -1003,7 +1003,7 @@
       }
       avancerProgress(barre, 75);
 
-      const champs = ['bio','titre_set','genre','cellulaire','instagram','instagram_perso','facebook','facebook_perso','tiktok','tiktok_perso','site_web','spotify_url','bandcamp_url','soundcloud_url','youtube_url','vimeo_url','setlist','rider_technique','besoins_hospitality'];
+      const champs = ['bio','titre_set','genre','courriel','cellulaire','instagram','instagram_perso','facebook','facebook_perso','tiktok','tiktok_perso','site_web','spotify_url','bandcamp_url','soundcloud_url','youtube_url','vimeo_url','setlist','rider_technique','besoins_hospitality'];
       // Champs URL stricts : si la valeur ne parse pas comme URL valide → null.
       // Évite que des saisies comme "non.", "bof..." ou "le pire des voleurs!"
       // cassent le rendu côté outils admin (qui font new URL() dessus).
