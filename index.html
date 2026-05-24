@@ -383,13 +383,31 @@
   <form id="formulaire" onsubmit="return false;">
 
     <fieldset id="bloc-candidature" style="display:none">
-      <legend>Première candidature · présente-toi</legend>
-      <p style="color:rgba(255,255,255,0.75);font-size:14px;margin:0 0 14px">Cédric et Joshué reçoivent ta candidature et décident d'une date. Plus le dossier est complet, plus tu mets toutes les chances de ton côté.</p>
+      <legend>Première candidature · choisis ta date</legend>
+      <p style="color:rgba(255,255,255,0.75);font-size:14px;margin:0 0 14px">Cédric et Joshué reçoivent ta candidature avec une date ferme proposée par toi. Plus le dossier est complet et la date pertinente, plus tu mets toutes les chances de ton côté.</p>
+
       <label for="nom_artiste_cand">Nom artiste / groupe *</label>
       <input type="text" id="nom_artiste_cand" placeholder="Ex : Trio Choro de Quintal" required>
-      <label for="date_souhaitee_cand">Date(s) souhaitée(s) <span class="opt">(libre — on regarde ce qui matche)</span></label>
-      <input type="text" id="date_souhaitee_cand" placeholder="Ex : un vendredi de juin, ou « peu importe »">
-      <p style="color:rgba(255,255,255,0.55);font-size:13px;margin:14px 0 0;font-style:italic">👇 Renseigne ton courriel et cellulaire dans le bloc « Toi » ci-dessous — ils sont essentiels pour qu'on puisse te répondre.</p>
+
+      <label for="date_proposee_select" style="margin-top:14px">Date principale que tu proposes *
+        <span class="opt">(uniquement les soirs où La Brassée est libre)</span></label>
+      <select id="date_proposee_select" required style="width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#f1efe4;font-size:16px;font-family:Lato,sans-serif">
+        <option value="" disabled selected>— Chargement des dates libres —</option>
+      </select>
+      <p id="date_principale_hint" style="color:rgba(255,255,255,0.55);font-size:12px;margin:6px 0 0">Préavis minimum 7 jours. Jours ouverts : lun · mar · jeu · ven · sam (sauf juillet-août où c'est ven · sam seulement).</p>
+
+      <details style="margin-top:14px">
+        <summary style="cursor:pointer;color:var(--jaune);font-size:14px;padding:8px 0">＋ Proposer une date secondaire <span style="color:rgba(255,255,255,0.55);font-size:12px">(au cas où la principale ne marche pas pour Cédric)</span></summary>
+        <label for="date_proposee_select_2" style="margin-top:10px">Date secondaire <span class="opt">(facultatif)</span></label>
+        <select id="date_proposee_select_2" style="width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#f1efe4;font-size:16px;font-family:Lato,sans-serif">
+          <option value="">— Pas de date secondaire —</option>
+        </select>
+      </details>
+
+      <label for="date_souhaitee_cand" style="margin-top:14px">Notes sur ta disponibilité <span class="opt">(facultatif — précise si tu as une flexibilité ou des contraintes particulières)</span></label>
+      <input type="text" id="date_souhaitee_cand" placeholder="Ex : flexible sur juillet sauf semaine du 14, peux faire avant-veille pour soundcheck étendu...">
+
+      <p style="color:rgba(255,255,255,0.55);font-size:13px;margin:14px 0 0;font-style:italic">👇 Renseigne aussi ton courriel et cellulaire dans le bloc « Toi » ci-dessous — essentiels pour qu'on puisse te répondre.</p>
     </fieldset>
 
     <fieldset>
@@ -650,6 +668,131 @@
   const MAX_VIDEOS = 3;
   const MAX_VIDEO_MO = 40;
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Sélection de date par l'artiste (mode candidature)
+  // Fetch les concerts existants, génère la liste des soirs libres
+  // (lun/mar/jeu/ven/sam sauf juill-août = ven/sam, sept-déc = fermés permanents)
+  // avec préavis 7 jours minimum + saison Impro lundis exclus.
+  // Logique alignée sur labrassee-cms/src/frontend/lib/dates-libres.ts
+  // ─────────────────────────────────────────────────────────────────────────
+  const JOURS_LONG_DEPOT = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+  const MOIS_LONG_DEPOT = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  const IMPRO_DEBUT_DEPOT = '2026-05-25';
+  const IMPRO_FIN_DEPOT = '2026-08-24';
+
+  function todayMtlISO() {
+    const f = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' });
+    const parts = f.formatToParts(new Date());
+    const get = (t) => parts.find(p => p.type === t)?.value || '';
+    return `${get('year')}-${get('month')}-${get('day')}`;
+  }
+
+  function isoAddDays(iso, days) {
+    const d = new Date(iso + 'T00:00:00');
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
+  }
+
+  function isoToLabel(iso) {
+    const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return iso;
+    const annee = parseInt(m[1]);
+    const mois = parseInt(m[2]) - 1;
+    const jour = parseInt(m[3]);
+    const dObj = new Date(annee, mois, jour);
+    const jourSem = JOURS_LONG_DEPOT[dObj.getDay()];
+    return `${jourSem.charAt(0).toUpperCase() + jourSem.slice(1)} ${jour} ${MOIS_LONG_DEPOT[mois]} ${annee}`;
+  }
+
+  async function fetchConcertsBookes() {
+    // Récupère toutes les dates où il y a déjà un concert planifié/confirmé
+    const today = todayMtlISO();
+    const horizon = isoAddDays(today, 180);
+    const url = `${SUPABASE_URL}/rest/v1/concerts?select=date_show,statut,titre_show&date_show=gte.${today}&date_show=lte.${horizon}&statut=in.(planifie,confirme)&limit=500`;
+    const res = await fetch(url, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY },
+    });
+    if (!res.ok) throw new Error('Supabase HTTP ' + res.status);
+    const rows = await res.json();
+    const map = new Map();
+    for (const r of rows) map.set(r.date_show, { statut: r.statut, titre: r.titre_show });
+    return map;
+  }
+
+  function genererDatesLibres(bookes) {
+    // Génère les soirs ouverts dans la fenêtre [today+7j, today+120j]
+    // Ouverts par mois : juin = lun/mar/jeu/ven/sam, juill-août = ven/sam,
+    // sept-déc = aucun (permanents prioritaires), reste = lun/mar/jeu/ven/sam.
+    const today = todayMtlISO();
+    const minDate = isoAddDays(today, 7);
+    const maxDate = isoAddDays(today, 120);
+    const out = [];
+    let cur = minDate;
+    while (cur <= maxDate) {
+      const d = new Date(cur + 'T00:00:00');
+      const dow = d.getDay();
+      const moisHum = d.getMonth() + 1;
+      // Sept-déc : aucun jour ouvert pour candidature (permanents prioritaires)
+      const isPermMonth = moisHum >= 9 && moisHum <= 12;
+      // Juill-août : ven/sam seulement
+      const joursOuverts = isPermMonth
+        ? new Set()
+        : (moisHum === 7 || moisHum === 8) ? new Set([5, 6]) : new Set([1, 2, 4, 5, 6]);
+      // Saison Impro lundis 25 mai → 24 août : exclus (bookés permanent)
+      const isImpro = dow === 1 && cur >= IMPRO_DEBUT_DEPOT && cur <= IMPRO_FIN_DEPOT;
+      if (joursOuverts.has(dow) && !isImpro && !bookes.has(cur)) {
+        out.push(cur);
+      }
+      cur = isoAddDays(cur, 1);
+    }
+    return out;
+  }
+
+  async function peuplerSelectsDatesLibres(preselect) {
+    const bookes = await fetchConcertsBookes();
+    const libres = genererDatesLibres(bookes);
+    const selP = document.getElementById('date_proposee_select');
+    const selS = document.getElementById('date_proposee_select_2');
+    if (!selP || !selS) return;
+    if (libres.length === 0) {
+      selP.innerHTML = '<option value="" disabled selected>Aucune date libre dans les 4 prochains mois — écris à contact@labrassee.cafe</option>';
+      selS.innerHTML = '<option value="">— Aucune date secondaire dispo —</option>';
+      return;
+    }
+    // Grouper par mois pour optgroup
+    const parMois = new Map();
+    for (const iso of libres) {
+      const cleMois = iso.slice(0, 7);
+      if (!parMois.has(cleMois)) parMois.set(cleMois, []);
+      parMois.get(cleMois).push(iso);
+    }
+    const buildOptions = (placeholder) => {
+      let html = `<option value="" ${placeholder ? 'disabled selected' : ''}>${placeholder || '— Pas de date secondaire —'}</option>`;
+      for (const [cleMois, dates] of parMois) {
+        const m = cleMois.match(/^(\d{4})-(\d{2})$/);
+        const libelleMois = m ? `${MOIS_LONG_DEPOT[parseInt(m[2]) - 1].charAt(0).toUpperCase() + MOIS_LONG_DEPOT[parseInt(m[2]) - 1].slice(1)} ${m[1]}` : cleMois;
+        html += `<optgroup label="${libelleMois}">`;
+        for (const iso of dates) html += `<option value="${iso}">${isoToLabel(iso)}</option>`;
+        html += '</optgroup>';
+      }
+      return html;
+    };
+    selP.innerHTML = buildOptions('— Choisis une date —');
+    selS.innerHTML = buildOptions(null);
+    if (preselect && libres.includes(preselect)) {
+      selP.value = preselect;
+    }
+    // Empêcher que principale et secondaire soient identiques
+    const sync = () => {
+      const v1 = selP.value;
+      const v2 = selS.value;
+      Array.from(selS.options).forEach(o => { o.disabled = o.value && o.value === v1; });
+      Array.from(selP.options).forEach(o => { o.disabled = o.value && o.value === v2; });
+    };
+    selP.addEventListener('change', sync);
+    selS.addEventListener('change', sync);
+  }
+
   async function init() {
     const chargement = document.getElementById('app-chargement');
     try {
@@ -667,21 +810,19 @@
         // Pas de bloc date show : on le cache
         const dates = document.querySelector('.accueil .dates');
         if (dates) dates.style.display = 'none';
-        // Affiche le bloc candidature (nom/email/date souhaitée)
+        // Affiche le bloc candidature (nom + sélection date + notes)
         document.getElementById('bloc-candidature').style.display = 'block';
-        // Pré-remplit la date souhaitée si arrivée depuis le calendrier
-        // /proposer avec ?date=YYYY-MM-DD
+
+        // Peupler les selects de dates libres (principale + secondaire)
+        // Si ?date=YYYY-MM-DD est passé en URL, pré-sélectionne dans la principale
         const dateParam = params.get('date');
-        if (dateParam) {
-          const dsc = document.getElementById('date_souhaitee_cand');
-          if (dsc) {
-            const m = dateParam.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-            if (m) {
-              const jours = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
-              const mois = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
-              const dObj = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]));
-              dsc.value = jours[dObj.getDay()] + ' ' + parseInt(m[3]) + ' ' + mois[parseInt(m[2]) - 1] + ' ' + m[1];
-            }
+        try {
+          await peuplerSelectsDatesLibres(dateParam);
+        } catch (err) {
+          console.error('Erreur peuplerSelectsDatesLibres:', err);
+          const sel = document.getElementById('date_proposee_select');
+          if (sel) {
+            sel.innerHTML = '<option value="" disabled selected>⚠️ Impossible de charger les dates libres — recharge la page</option>';
           }
         }
         // Pré-remplir signature_nom au fil de la frappe nom_artiste_cand
@@ -916,13 +1057,19 @@
     const progress = document.getElementById('progress-bar');
     const barre = document.getElementById('progress-barre');
 
-    // En mode candidature : valider nom + courriel (lus depuis le champ unifié `courriel` du bloc « Toi »)
+    // En mode candidature : valider nom + courriel + date principale obligatoire
     if (modeCandidature) {
       const nomCand = document.getElementById('nom_artiste_cand').value.trim();
       const mailCand = document.getElementById('courriel').value.trim();
+      const datePrincipale = document.getElementById('date_proposee_select').value;
       if (!nomCand) {
         afficherMessage('erreur', 'Nom requis', "Indique le nom de l'artiste ou du groupe avant d'envoyer.");
         document.getElementById('nom_artiste_cand').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      if (!datePrincipale) {
+        afficherMessage('erreur', 'Date principale requise', "Choisis une date libre dans le calendrier — c'est ce qui nous permet de te répondre rapidement avec un go/no-go ferme.");
+        document.getElementById('date_proposee_select').scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
       if (!mailCand || !mailCand.includes('@')) {
@@ -957,6 +1104,8 @@
         const nomCand = document.getElementById('nom_artiste_cand').value.trim();
         const mailCand = document.getElementById('courriel').value.trim();
         const dateCand = document.getElementById('date_souhaitee_cand').value.trim();
+        const datePrincipale = document.getElementById('date_proposee_select').value || null;
+        const dateSecondaire = document.getElementById('date_proposee_select_2').value || null;
         const slug = nomCand.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
         const rand = Math.random().toString(36).slice(2, 8);
         const token = `surlascene-${slug || 'candidat'}-${rand}`;
@@ -966,7 +1115,9 @@
             nom_artiste: nomCand,
             courriel: mailCand,
             token_depot: token,
-            recurrence_notes: dateCand ? `Dates souhaitées : ${dateCand}` : null,
+            date_proposee: datePrincipale,
+            date_proposee_secondaire: dateSecondaire,
+            recurrence_notes: dateCand ? `Notes disponibilité : ${dateCand}` : null,
           })
           .select()
           .single();
