@@ -463,6 +463,34 @@
       </div>
     </fieldset>
 
+    <!-- ═══ BANDSINTOWN — BANNIÈRE VISIBILITÉ ═══ -->
+    <fieldset style="border-color:rgba(247,209,53,0.5);background:linear-gradient(135deg,rgba(247,209,53,0.08),rgba(247,209,53,0.03))">
+      <legend style="color:#f7d135;font-size:1rem">📍 Profil Bandsintown — booste ta visibilité gratuitement</legend>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <p style="font-size:15px;line-height:1.65;color:var(--blanc-doux)">
+          <strong style="color:#f7d135">Bandsintown est la plateforme #1 de suivi de concerts.</strong> Si tu as un profil artiste, <strong>tous tes fans déjà abonnés reçoivent une notification automatique</strong> le jour où ton concert à La Brassée est publié — sans qu'on ait à faire quoi que ce soit. En plus, tes concerts apparaissent automatiquement sur&nbsp;:
+        </p>
+        <ul style="list-style:none;padding:0;display:flex;flex-wrap:wrap;gap:10px;margin:0">
+          <li style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 14px;font-size:13px;display:flex;align-items:center;gap:8px"><span>🗺️</span><strong>Apple Maps</strong> — fiche du lieu avec tes dates</li>
+          <li style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 14px;font-size:13px;display:flex;align-items:center;gap:8px"><span>🎵</span><strong>Shazam</strong> — concerts suggérés aux gens qui identifient ta musique</li>
+          <li style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 14px;font-size:13px;display:flex;align-items:center;gap:8px"><span>📅</span><strong>Songkick</strong> — agenda partagé automatiquement</li>
+          <li style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px 14px;font-size:13px;display:flex;align-items:center;gap:8px"><span>🌐</span><strong>+30 sites partenaires</strong> — sans action de ta part</li>
+        </ul>
+        <div style="background:rgba(247,209,53,0.12);border:1px solid rgba(247,209,53,0.35);border-radius:10px;padding:14px 18px;display:flex;gap:14px;align-items:flex-start">
+          <span style="font-size:22px;flex-shrink:0">⚡</span>
+          <div>
+            <p style="font-weight:700;color:#f7d135;margin-bottom:4px;font-size:14px">C'est gratuit et ça prend 2 minutes.</p>
+            <p style="font-size:13px;color:var(--blanc-doux);line-height:1.5">Crée ton profil artiste sur <a href="https://bandsintown.com/artists" target="_blank" rel="noopener" style="color:#f7d135;font-weight:600">bandsintown.com/artists</a> si tu n'en as pas encore. Une fois que tu nous partages ton URL ci-dessous, on peut publier tes concerts et ta fanbase est notifiée automatiquement. <strong style="color:var(--blanc)">Sans profil Bandsintown, tes concerts n'apparaissent pas sur Apple Maps ni Shazam.</strong></p>
+          </div>
+        </div>
+        <div class="lien-bloc" style="margin:0">
+          <label for="bandsintown_url" style="color:#f7d135;font-weight:600">🎪 Profil Bandsintown <span style="font-weight:400;color:var(--gris)">(fortement recommandé)</span></label>
+          <input type="url" id="bandsintown_url" placeholder="https://bandsintown.com/a/ton-nom-artiste" style="border-color:rgba(247,209,53,0.4)">
+          <p style="font-size:12px;color:var(--gris);margin-top:6px">Pas encore de profil ? → <a href="https://bandsintown.com/artists" target="_blank" rel="noopener" style="color:#f7d135">Créer un compte gratuit en 2 min</a> · Reviens coller ton URL ici après.</p>
+        </div>
+      </div>
+    </fieldset>
+
     <fieldset>
       <legend>Réseaux sociaux</legend>
       <div class="info-batch">
@@ -872,7 +900,7 @@
       }
 
       // Préremplir les champs
-      const champs = ['bio','titre_set','genre','nb_personnes_scene','duree_set_minutes','courriel','cellulaire','instagram','instagram_perso','facebook','facebook_perso','tiktok','tiktok_perso','site_web','spotify_url','bandcamp_url','soundcloud_url','youtube_url','vimeo_url','setlist','rider_technique','besoins_hospitality','signature_nom'];
+      const champs = ['bio','titre_set','genre','nb_personnes_scene','duree_set_minutes','courriel','cellulaire','instagram','instagram_perso','facebook','facebook_perso','tiktok','tiktok_perso','site_web','bandsintown_url','spotify_url','bandcamp_url','soundcloud_url','youtube_url','vimeo_url','setlist','rider_technique','besoins_hospitality','signature_nom'];
       champs.forEach(c => {
         const el = document.getElementById(c);
         if (el && artiste[c]) el.value = artiste[c];
@@ -1154,12 +1182,12 @@
       }
       avancerProgress(barre, 75);
 
-      const champs = ['bio','titre_set','genre','courriel','cellulaire','instagram','instagram_perso','facebook','facebook_perso','tiktok','tiktok_perso','site_web','spotify_url','bandcamp_url','soundcloud_url','youtube_url','vimeo_url','setlist','rider_technique','besoins_hospitality'];
+      const champs = ['bio','titre_set','genre','courriel','cellulaire','instagram','instagram_perso','facebook','facebook_perso','tiktok','tiktok_perso','site_web','bandsintown_url','spotify_url','bandcamp_url','soundcloud_url','youtube_url','vimeo_url','setlist','rider_technique','besoins_hospitality'];
       // Champs URL stricts : si la valeur ne parse pas comme URL valide → null.
       // Évite que des saisies comme "non.", "bof..." ou "le pire des voleurs!"
       // cassent le rendu côté outils admin (qui font new URL() dessus).
       // Pour les handles Instagram/Facebook/TikTok, on accepte "@handle" sans crash.
-      const champsUrlStricts = new Set(['site_web','spotify_url','bandcamp_url','soundcloud_url','youtube_url','vimeo_url','facebook','facebook_perso']);
+      const champsUrlStricts = new Set(['site_web','bandsintown_url','spotify_url','bandcamp_url','soundcloud_url','youtube_url','vimeo_url','facebook','facebook_perso']);
       function sanitizeUrl(v) {
         if (!v) return null;
         let s = String(v).trim();
