@@ -605,6 +605,14 @@
 
       <label for="besoins_hospitality">Besoins hospitality <span class="opt">(allergies, régimes, demandes particulières — on a 30 $ de conso offerts par artiste, plafond 120 $)</span></label>
       <textarea id="besoins_hospitality" placeholder="Ex : Bassiste végé. Préférence pour bières IPA et un truc à manger après le soundcheck."></textarea>
+
+      <label for="captation_audio_video" style="display:flex;align-items:flex-start;gap:12px;margin-top:18px;padding:14px 16px;border-radius:12px;background:rgba(247,209,53,0.08);border:1px solid rgba(247,209,53,0.25);cursor:pointer">
+        <input type="checkbox" id="captation_audio_video" style="margin-top:3px;width:18px;height:18px;accent-color:var(--jaune);cursor:pointer">
+        <span style="flex:1;line-height:1.5">
+          <span style="font-weight:600;color:var(--jaune)">🎥 Captation audio + vidéo stéréo sur clé USB</span>
+          <span style="display:block;font-size:13px;color:var(--blanc-doux);margin-top:4px">Tu repars avec l'enregistrement de ton show (audio stéréo via les Røde NT5 + vidéo caméra plafond Marshall CV380-CS) sur clé USB en fin de soirée. <strong style="color:var(--jaune)">40 $</strong>, facturé séparément. Coche pour qu'on prépare la prise.</span>
+        </span>
+      </label>
     </fieldset>
 
     <fieldset>
@@ -903,6 +911,9 @@
         const el = document.getElementById(c);
         if (el && artiste[c]) el.value = artiste[c];
       });
+      // Pré-cocher la captation si déjà activée en BD
+      const capt = document.getElementById('captation_audio_video');
+      if (capt && artiste.captation_audio_video) capt.checked = true;
       if (!document.getElementById('signature_nom').value) {
         document.getElementById('signature_nom').value = artiste.nom_complet || artiste.nom_artiste || '';
       }
@@ -1192,6 +1203,8 @@
       avancerProgress(barre, 75);
 
       const champs = ['bio','titre_set','genre','courriel','cellulaire','instagram','instagram_perso','facebook','facebook_perso','tiktok','tiktok_perso','site_web','bandsintown_url','spotify_url','bandcamp_url','soundcloud_url','youtube_url','vimeo_url','setlist','rider_technique','besoins_hospitality'];
+      // Captation audio+vidéo (case à cocher → boolean en BD)
+      const captElement = document.getElementById('captation_audio_video');
       // Champs URL stricts : si la valeur ne parse pas comme URL valide → null.
       // Évite que des saisies comme "non.", "bof..." ou "le pire des voleurs!"
       // cassent le rendu côté outils admin (qui font new URL() dessus).
@@ -1227,6 +1240,7 @@
       update.photo_artiste_path = photoArtistePath;
       update.photos_hd_paths = photosHDPaths;
       update.videos_paths = videosPaths;
+      update.captation_audio_video = !!(captElement && captElement.checked);
       update.signature_acceptee = true;
       update.signature_nom = signatureNom;
       update.signature_le = new Date().toISOString();
