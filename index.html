@@ -396,13 +396,11 @@
       </select>
       <p id="date_principale_hint" style="color:rgba(255,255,255,0.55);font-size:12px;margin:6px 0 0">Préavis minimum 7 jours. Jours ouverts : lun · mar · jeu · ven · sam (sauf juillet-août où c'est ven · sam seulement).</p>
 
-      <details style="margin-top:14px">
-        <summary style="cursor:pointer;color:var(--jaune);font-size:14px;padding:8px 0">＋ Proposer une date secondaire <span style="color:rgba(255,255,255,0.55);font-size:12px">(au cas où la principale ne marche pas pour Cédric)</span></summary>
-        <label for="date_proposee_select_2" style="margin-top:10px">Date secondaire <span class="opt">(facultatif)</span></label>
-        <select id="date_proposee_select_2" style="width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#f1efe4;font-size:16px;font-family:Lato,sans-serif">
-          <option value="">— Pas de date secondaire —</option>
-        </select>
-      </details>
+      <label for="date_proposee_select_2" style="margin-top:14px">Date secondaire que tu proposes *
+        <span class="opt">(au cas où la principale ne marche pas pour Cédric — obligatoire, ça évite les allers-retours)</span></label>
+      <select id="date_proposee_select_2" required style="width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#f1efe4;font-size:16px;font-family:Lato,sans-serif">
+        <option value="" disabled selected>— Chargement des dates libres —</option>
+      </select>
 
       <label for="date_souhaitee_cand" style="margin-top:14px">Notes sur ta disponibilité <span class="opt">(facultatif — précise si tu as une flexibilité ou des contraintes particulières)</span></label>
       <input type="text" id="date_souhaitee_cand" placeholder="Ex : flexible sur juillet sauf semaine du 14, peux faire avant-veille pour soundcheck étendu...">
@@ -795,7 +793,7 @@
       parMois.get(cleMois).push(iso);
     }
     const buildOptions = (placeholder) => {
-      let html = `<option value="" ${placeholder ? 'disabled selected' : ''}>${placeholder || '— Pas de date secondaire —'}</option>`;
+      let html = `<option value="" disabled selected>${placeholder}</option>`;
       for (const [cleMois, dates] of parMois) {
         const m = cleMois.match(/^(\d{4})-(\d{2})$/);
         const libelleMois = m ? `${MOIS_LONG_DEPOT[parseInt(m[2]) - 1].charAt(0).toUpperCase() + MOIS_LONG_DEPOT[parseInt(m[2]) - 1].slice(1)} ${m[1]}` : cleMois;
@@ -805,8 +803,8 @@
       }
       return html;
     };
-    selP.innerHTML = buildOptions('— Choisis une date —');
-    selS.innerHTML = buildOptions(null);
+    selP.innerHTML = buildOptions('— Choisis ta date principale —');
+    selS.innerHTML = buildOptions('— Choisis ta date secondaire —');
     if (preselect && libres.includes(preselect)) {
       selP.value = preselect;
     }
@@ -1085,11 +1083,12 @@
     const progress = document.getElementById('progress-bar');
     const barre = document.getElementById('progress-barre');
 
-    // En mode candidature : valider nom + courriel + date principale obligatoire
+    // En mode candidature : valider nom + courriel + 2 dates obligatoires
     if (modeCandidature) {
       const nomCand = document.getElementById('nom_artiste_cand').value.trim();
       const mailCand = document.getElementById('courriel').value.trim();
       const datePrincipale = document.getElementById('date_proposee_select').value;
+      const dateSecondaire = document.getElementById('date_proposee_select_2').value;
       if (!nomCand) {
         afficherMessage('erreur', 'Nom requis', "Indique le nom de l'artiste ou du groupe avant d'envoyer.");
         document.getElementById('nom_artiste_cand').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1098,6 +1097,16 @@
       if (!datePrincipale) {
         afficherMessage('erreur', 'Date principale requise', "Choisis une date libre dans le calendrier — c'est ce qui nous permet de te répondre rapidement avec un go/no-go ferme.");
         document.getElementById('date_proposee_select').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      if (!dateSecondaire) {
+        afficherMessage('erreur', 'Date secondaire requise', "Choisis aussi une date secondaire — au cas où la principale ne marche pas, ça évite les allers-retours par courriel et accélère ta réponse.");
+        document.getElementById('date_proposee_select_2').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      if (datePrincipale === dateSecondaire) {
+        afficherMessage('erreur', 'Dates identiques', "La date principale et la date secondaire doivent être différentes.");
+        document.getElementById('date_proposee_select_2').scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
       if (!mailCand || !mailCand.includes('@')) {
