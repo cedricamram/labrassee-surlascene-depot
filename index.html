@@ -1252,9 +1252,19 @@
 
       avancerProgress(barre, 100);
 
+      const bandsinBlocSuggestion = (update.spotify_url && !update.bandsintown_url)
+        ? `<div style="margin-top:18px;background:rgba(247,209,53,0.1);border:1px solid rgba(247,209,53,0.35);border-radius:10px;padding:14px 18px;display:flex;gap:14px;align-items:flex-start">
+            <span style="font-size:20px;flex-shrink:0">📍</span>
+            <div>
+              <p style="font-weight:700;color:#f7d135;margin-bottom:4px;font-size:14px">Un dernier truc — gratuit, 2 minutes.</p>
+              <p style="font-size:13px;color:rgba(255,255,255,0.85);line-height:1.6">Tu as un profil Spotify — c'est un bon signe que tu es actif. Si tu crées un profil sur <a href="https://bandsintown.com/artists" target="_blank" rel="noopener" style="color:#f7d135;font-weight:600">Bandsintown</a>, tes fans reçoivent une notif automatique dès que ton concert à La Brassée est publié. Tes dates apparaissent aussi sur Apple Maps et Shazam — sans rien faire de plus. <strong style="color:#fff">Tu peux revenir coller ton URL Bandsintown dans ce formulaire quand tu veux.</strong></p>
+            </div>
+          </div>`
+        : '';
+
       const messageSucces = modeCandidature
-        ? `Merci ${artiste.nom_artiste}. Ta candidature est arrivée chez Cédric et Joshué. Ils te reviennent rapidement avec une date proposée. Garde précieusement ce lien personnel pour ajuster ton dossier plus tard : <code style="display:block;margin-top:10px;background:rgba(247,209,53,0.1);padding:8px;border-radius:6px;font-size:12px;word-break:break-all">${window.location.origin}/?t=${artiste.token_depot}</code>`
-        : `Merci ${artiste.nom_artiste}. Cédric te reviendra rapidement. Tu peux fermer cette fenêtre, ou revenir plus tard pour ajouter d'autres photos ou ajuster ton rider.`;
+        ? `Merci ${artiste.nom_artiste}. Ta candidature est arrivée chez Cédric et Joshué. Ils te reviennent rapidement avec une date proposée. Garde précieusement ce lien personnel pour ajuster ton dossier plus tard : <code style="display:block;margin-top:10px;background:rgba(247,209,53,0.1);padding:8px;border-radius:6px;font-size:12px;word-break:break-all">${window.location.origin}/?t=${artiste.token_depot}</code>${bandsinBlocSuggestion}`
+        : `Merci ${artiste.nom_artiste}. Cédric te reviendra rapidement. Tu peux fermer cette fenêtre, ou revenir plus tard pour ajouter d'autres photos ou ajuster ton rider.${bandsinBlocSuggestion}`;
       afficherMessage('succes', '✓ Tout est arrivé à La Brassée', messageSucces);
       bouton.textContent = 'Envoyé ✓';
       photosHD.length = 0;
