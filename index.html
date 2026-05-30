@@ -155,9 +155,13 @@
   @keyframes spectre-anim { 0%,100% { transform: scaleY(0.6); opacity: 0.5; } 50% { transform: scaleY(1); opacity: 0.95; } }
 
   .accueil {
-    background: linear-gradient(135deg, rgba(247, 209, 53, 0.10), rgba(247, 209, 53, 0.02));
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    /* PERF SCROLL (2026-05-30) : backdrop-filter:blur retiré. Empilé sur
+       l'accueil + ~10 fieldsets plein largeur, il forçait le compositor à
+       re-flouter tout l'arrière-plan à CHAQUE frame de défilement → scroll
+       figé sur iOS et laptops à GPU intégré (cas Constanza, sur tous ses
+       appareils). Look « verre » conservé via fond translucide sur base
+       sombre opaque, sans coût GPU au scroll. */
+    background: linear-gradient(135deg, rgba(247, 209, 53, 0.12), rgba(247, 209, 53, 0.03)), var(--sombre-alt);
     border: 1px solid var(--jaune-trame);
     box-shadow: var(--glass-inset), var(--glass-shadow);
     padding: 32px 36px; margin-bottom: 32px; border-radius: 20px;
@@ -182,9 +186,9 @@
 
   fieldset {
     border: 1px solid var(--glass-border); padding: 32px; margin-bottom: 28px;
-    background: var(--glass-bg);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    /* PERF SCROLL : voir note .accueil — backdrop-filter retiré (le coupable
+       du scroll figé). Panneau « verre » rendu par un fond translucide sombre. */
+    background: linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)), var(--noir-pur);
     box-shadow: var(--glass-inset), var(--glass-shadow);
     border-radius: 20px;
   }
@@ -243,7 +247,7 @@
   .dropzone-batch {
     border: 2px dashed var(--jaune-fort); padding: 48px 24px; text-align: center;
     background: linear-gradient(135deg, rgba(247, 209, 53, 0.10), rgba(247, 209, 53, 0.02));
-    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    /* backdrop-filter retiré — perf scroll (voir note .accueil) */
     cursor: pointer; transition: all 0.2s ease; margin-bottom: 24px; border-radius: 16px;
   }
   .dropzone-batch:hover, .dropzone-batch.drag-actif {
@@ -263,7 +267,7 @@
   }
 
   .photo-carte {
-    background: rgba(0, 0, 0, 0.25); backdrop-filter: blur(12px);
+    background: rgba(0, 0, 0, 0.4);
     border: 1px solid var(--glass-border); box-shadow: var(--glass-inset);
     margin-bottom: 12px; padding: 14px; display: flex; gap: 14px; align-items: center;
     transition: all 0.2s ease; border-radius: 12px;
@@ -299,7 +303,7 @@
 
   .message {
     padding: 22px 26px; margin: 20px 0; display: none;
-    border-left: 3px solid; backdrop-filter: blur(20px); border-radius: 12px;
+    border-left: 3px solid; border-radius: 12px;
   }
   .message.actif { display: block; }
   .message.succes { background: rgba(138, 214, 114, 0.12); border-color: var(--vert); color: var(--blanc); }
@@ -326,7 +330,7 @@
     text-align: center; padding: 48px 24px;
     border-top: 1px solid var(--glass-border);
     color: var(--gris); font-size: 13px;
-    background: rgba(10, 9, 5, 0.6); backdrop-filter: blur(20px);
+    background: rgba(10, 9, 5, 0.85);
   }
   footer .logo-svg-footer { width: 64px; height: 64px; margin: 0 auto 14px; }
   footer .logo-svg-footer svg { width: 100%; height: 100%; }
