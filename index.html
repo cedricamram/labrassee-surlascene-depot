@@ -917,23 +917,18 @@
         document.getElementById('app-erreur-token').style.display = 'flex';
         return;
       }
-      const { data, error } = await supa
-        .from('artistes_scene').select('*').eq('token_depot', token).maybeSingle();
-      if (error || !data) {
+      // Lecture via RPC token-gated (get_dossier_scene). La fusion de tokens est
+      // résolue côté serveur : un alias (fusionne_vers) renvoie directement la
+      // fiche canonique → les deux liens ouvrent et modifient le MÊME dossier.
+      // Sécurité : la table n'expose plus les PII ni le token en lecture anon.
+      const { data, error } = await supa.rpc('get_dossier_scene', { p_token: token });
+      if (error || !data || !data.id) {
         console.error('Erreur chargement artiste:', error);
         chargement.style.display = 'none';
         document.getElementById('app-erreur-token').style.display = 'flex';
         return;
       }
       artiste = data;
-      // Fusion de tokens : plusieurs membres d'un groupe ont chacun leur lien, mais
-      // un seul dossier à gérer. Si cette fiche est un alias (fusionne_vers), on charge
-      // la fiche canonique → les deux liens ouvrent et modifient le MÊME dossier.
-      if (artiste.fusionne_vers) {
-        const { data: canon } = await supa
-          .from('artistes_scene').select('*').eq('id', artiste.fusionne_vers).maybeSingle();
-        if (canon) artiste = canon;
-      }
       // Concerts à venir de l'artiste (pour l'en-tête + le bloc « mise à jour par date »)
       const todayISO = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' });
       const { data: ca } = await supa
@@ -1306,21 +1301,17 @@
         const dateCand = document.getElementById('date_souhaitee_cand').value.trim();
         const datePrincipale = document.getElementById('date_proposee_select').value || null;
         const dateSecondaire = document.getElementById('date_proposee_select_2').value || null;
-        const slug = nomCand.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
-        const rand = Math.random().toString(36).slice(2, 8);
-        const token = `surlascene-${slug || 'candidat'}-${rand}`;
-        const { data: nouveau, error: errIns } = await supa
-          .from('artistes_scene')
-          .insert({
+        // Création via RPC : le token_depot est généré côté serveur et le statut est
+        // forcé à « candidature » (anon ne peut plus insérer une ligne forgée).
+        const { data: nouveau, error: errIns } = await supa.rpc('creer_candidature_scene', {
+          p_payload: {
             nom_artiste: nomCand,
             courriel: mailCand,
-            token_depot: token,
             date_proposee: datePrincipale,
             date_proposee_secondaire: dateSecondaire,
             recurrence_notes: dateCand ? `Notes disponibilité : ${dateCand}` : null,
-          })
-          .select()
-          .single();
+          },
+        });
         if (errIns) throw errIns;
         artiste = nouveau;
       }
@@ -1398,8 +1389,10 @@
       update.signature_le = new Date().toISOString();
       update.statut = modeCandidature ? 'candidature_complete' : 'depot_complet';
 
-      const { error: errMaj } = await supa
-        .from('artistes_scene').update(update).eq('token_depot', artiste.token_depot);
+      const { error: errMaj } = await supa.rpc('maj_dossier_scene', {
+        p_token: artiste.token_depot,
+        p_payload: update,
+      });
       if (errMaj) throw errMaj;
 
       // Mise à jour de la soirée choisie (invité + texte) directement sur l'event.
@@ -1418,7 +1411,11 @@
           cu.titre_show = `${artiste.nom_artiste} invite ${invite}` + (suffix ? ` — ${suffix}` : '');
         }
         if (Object.keys(cu).length) {
-          const { error: errC } = await supa.from('concerts').update(cu).eq('id', selMaj.value);
+          const { error: errC } = await supa.rpc('maj_concert_par_artiste', {
+            p_token: artiste.token_depot,
+            p_concert_id: selMaj.value,
+            p_payload: cu,
+          });
           if (errC) console.error('MAJ event (date précise) échouée :', errC);
         }
       }
