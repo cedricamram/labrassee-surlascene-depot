@@ -926,6 +926,14 @@
         return;
       }
       artiste = data;
+      // Fusion de tokens : plusieurs membres d'un groupe ont chacun leur lien, mais
+      // un seul dossier à gérer. Si cette fiche est un alias (fusionne_vers), on charge
+      // la fiche canonique → les deux liens ouvrent et modifient le MÊME dossier.
+      if (artiste.fusionne_vers) {
+        const { data: canon } = await supa
+          .from('artistes_scene').select('*').eq('id', artiste.fusionne_vers).maybeSingle();
+        if (canon) artiste = canon;
+      }
       // Concerts à venir de l'artiste (pour l'en-tête + le bloc « mise à jour par date »)
       const todayISO = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' });
       const { data: ca } = await supa
