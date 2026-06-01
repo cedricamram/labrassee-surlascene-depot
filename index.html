@@ -389,6 +389,11 @@
 
   <form id="formulaire" onsubmit="return false;">
 
+    <div id="banniere-dossier" style="display:none;margin-bottom:22px;padding:16px 20px;border-radius:14px;border:1px solid rgba(247,209,53,0.45);background:linear-gradient(135deg,rgba(247,209,53,0.10),rgba(247,209,53,0.03))">
+      <strong style="color:var(--jaune)">Voici ton dossier complet, tel qu'on l'a. 🐝</strong>
+      <p style="margin:6px 0 0;font-size:14px;color:rgba(255,255,255,0.82);line-height:1.55">Tout ce qui s'affiche ci-dessous est <strong>déjà enregistré chez nous</strong> — tes infos, tes photos, tes vidéos. Modifie, ajoute ou retire ce que tu veux. Un champ vide veut simplement dire «&nbsp;pas encore renseigné&nbsp;» : <strong>rien n'est perdu</strong>.</p>
+    </div>
+
     <fieldset id="bloc-candidature" style="display:none">
       <legend>Première candidature · choisis ta date</legend>
       <p style="color:rgba(255,255,255,0.75);font-size:14px;margin:0 0 14px">Cédric et Joshué reçoivent ta candidature avec une date ferme proposée par toi. Plus le dossier est complet et la date pertinente, plus tu mets toutes les chances de ton côté.</p>
@@ -583,6 +588,12 @@
       <div class="info-batch">
         Glisse jusqu'à 6 photos haute définition (JPG/PNG, max 10 Mo chacune). On les utilisera pour Facebook, Instagram, la page publique de La Brassée et la TV Cuisine. Idéalement, des photos libres de droits (ou dont tu as les droits) — mentionne en commentaire si crédit photo à indiquer.
       </div>
+      <div id="photos-existantes-bloc" style="display:none">
+        <div class="info-batch" style="border-color:rgba(247,209,53,0.4);background:rgba(247,209,53,0.06)">
+          📁 <strong>Photos déjà dans ton dossier</strong> — elles sont enregistrées chez nous. Retire celles que tu ne veux plus, et ajoute-en de nouvelles ci-dessous.
+        </div>
+        <div class="photos-zone" id="photos-existantes-zone"></div>
+      </div>
       <div class="dropzone-batch" id="dropzone-batch">
         <div class="icone">🖼️</div>
         <div class="titre">Glisse tes photos HD ici</div>
@@ -603,6 +614,12 @@
         💡 <strong>Astuce</strong> : une vidéo verticale (9:16) marche partout sans recadrage. Mais on prend tout ce que t'as.
         <br><br>
         <span style="font-size:13px;color:var(--gris);font-style:italic">En déposant une vidéo, tu confirmes en détenir les droits ou avoir l'autorisation de la diffuser.</span>
+      </div>
+      <div id="videos-existantes-bloc" style="display:none">
+        <div class="info-batch" style="border-color:rgba(247,209,53,0.4);background:rgba(247,209,53,0.06)">
+          🎬 <strong>Vidéos déjà dans ton dossier</strong> — déjà chez nous. Retire ou ajoute ci-dessous.
+        </div>
+        <div class="photos-zone" id="videos-existantes-zone"></div>
       </div>
       <div class="dropzone-batch" id="dropzone-videos">
         <div class="icone">🎬</div>
@@ -719,6 +736,8 @@
   let artiste = null;
   let concertLie = null;
   let concertsAvenir = []; // toutes les dates à venir de l'artiste (bloc « mise à jour par date »)
+  let photosExistantes = []; // photos HD déjà au dossier {path,url,keep}
+  let videosExistantes = []; // vidéos déjà au dossier {path,url,keep,nom}
   let photoArtisteFichier = null;
   let modeCandidature = false; // true si premier dépôt sans token (candidature spontanée)
   const photosHD = [];
@@ -960,6 +979,23 @@
         }
       }
 
+      // Dossier existant : on AFFICHE tout ce qui est déjà déposé (photo principale,
+      // photos HD, vidéos) sinon l'artiste croit que tout a disparu et re-dépose / écrit.
+      if (!modeCandidature) {
+        const banniere = document.getElementById('banniere-dossier');
+        if (banniere) banniere.style.display = 'block';
+      }
+      if (artiste.photo_artiste_path && apercuArtiste) {
+        apercuArtiste.src = urlPhoto(artiste.photo_artiste_path);
+        apercuArtiste.style.display = 'block';
+      }
+      photosExistantes = (Array.isArray(artiste.photos_hd_paths) ? artiste.photos_hd_paths : [])
+        .map(p => ({ path: p, url: urlPhoto(p), keep: true }));
+      renderPhotosExistantes();
+      videosExistantes = (Array.isArray(artiste.videos_paths) ? artiste.videos_paths : [])
+        .map(p => ({ path: p, url: urlPhoto(p), keep: true, nom: p.split('/').pop() }));
+      renderVideosExistantes();
+
       // Préremplir les champs
       const champs = ['bio','titre_set','genre','nb_personnes_scene','duree_set_minutes','courriel','cellulaire','instagram','instagram_perso','facebook','facebook_perso','tiktok','tiktok_perso','site_web','bandsintown_url','spotify_url','bandcamp_url','soundcloud_url','youtube_url','vimeo_url','setlist','rider_technique','besoins_hospitality','signature_nom'];
       champs.forEach(c => {
@@ -1141,6 +1177,59 @@
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  // ----- Affichage de l'existant (dossier déjà déposé) -----
+  function urlPhoto(path) {
+    return SUPABASE_URL + '/storage/v1/object/public/artistes-scene-epk/' + path;
+  }
+  function renderPhotosExistantes() {
+    const bloc = document.getElementById('photos-existantes-bloc');
+    const zone = document.getElementById('photos-existantes-zone');
+    if (!bloc || !zone) return;
+    if (!photosExistantes.some(p => p.keep)) { bloc.style.display = 'none'; return; }
+    bloc.style.display = 'block';
+    zone.innerHTML = '';
+    photosExistantes.forEach((p, idx) => {
+      if (!p.keep) return;
+      const carte = document.createElement('div');
+      carte.className = 'photo-carte';
+      carte.innerHTML = `
+        <div class="miniature" style="background-image:url('${p.url}')"></div>
+        <div class="nom">✓ déjà dans ton dossier</div>
+        <button type="button" class="retirer" data-retirer-exist="${idx}">Retirer</button>`;
+      zone.appendChild(carte);
+    });
+    zone.querySelectorAll('button[data-retirer-exist]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        photosExistantes[parseInt(e.target.dataset.retirerExist)].keep = false;
+        renderPhotosExistantes();
+      });
+    });
+  }
+  function renderVideosExistantes() {
+    const bloc = document.getElementById('videos-existantes-bloc');
+    const zone = document.getElementById('videos-existantes-zone');
+    if (!bloc || !zone) return;
+    if (!videosExistantes.some(v => v.keep)) { bloc.style.display = 'none'; return; }
+    bloc.style.display = 'block';
+    zone.innerHTML = '';
+    videosExistantes.forEach((v, idx) => {
+      if (!v.keep) return;
+      const carte = document.createElement('div');
+      carte.className = 'photo-carte';
+      carte.innerHTML = `
+        <div class="miniature" style="display:flex;align-items:center;justify-content:center;font-size:32px;background:rgba(247,209,53,0.10)">🎬</div>
+        <div class="nom">✓ ${escaperHtml(v.nom)}</div>
+        <button type="button" class="retirer" data-retirer-vexist="${idx}">Retirer</button>`;
+      zone.appendChild(carte);
+    });
+    zone.querySelectorAll('button[data-retirer-vexist]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        videosExistantes[parseInt(e.target.dataset.retirerVexist)].keep = false;
+        renderVideosExistantes();
+      });
+    });
+  }
+
   document.getElementById('bouton-envoi').addEventListener('click', envoyerTout);
 
   async function envoyerTout() {
@@ -1233,8 +1322,8 @@
       }
       avancerProgress(barre, 10);
 
-      // Upload photos HD
-      const photosHDPaths = Array.isArray(artiste.photos_hd_paths) ? [...artiste.photos_hd_paths] : [];
+      // Upload photos HD — on repart des photos existantes GARDÉES (l'artiste a pu en retirer)
+      const photosHDPaths = photosExistantes.filter(p => p.keep).map(p => p.path);
       const total = photosHD.length;
       for (let i = 0; i < total; i++) {
         const p = photosHD[i];
@@ -1245,8 +1334,8 @@
       }
       avancerProgress(barre, 60);
 
-      // Upload vidéos
-      const videosPaths = Array.isArray(artiste.videos_paths) ? [...artiste.videos_paths] : [];
+      // Upload vidéos — on repart des vidéos existantes GARDÉES
+      const videosPaths = videosExistantes.filter(v => v.keep).map(v => v.path);
       const totalVideos = videos.length;
       for (let i = 0; i < totalVideos; i++) {
         const v = videos[i];
