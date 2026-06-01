@@ -415,6 +415,22 @@
       <p style="color:rgba(255,255,255,0.55);font-size:13px;margin:14px 0 0;font-style:italic">👇 Renseigne aussi ton courriel et cellulaire dans le bloc « Toi » ci-dessous — essentiels pour qu'on puisse te répondre.</p>
     </fieldset>
 
+    <fieldset id="bloc-maj-date" style="display:none;border-color:rgba(247,209,53,0.5);background:linear-gradient(135deg,rgba(247,209,53,0.08),rgba(247,209,53,0.03))">
+      <legend>Mise à jour pour une de tes dates</legend>
+      <p style="color:rgba(255,255,255,0.8);font-size:14px;margin:0 0 14px">Tu reviens jouer&nbsp;? Pas besoin de tout refaire — ton dossier est conservé. Choisis ta date et dis-nous seulement ce qui change pour cette soirée-là (invité·e, présentation). Tes photos, bio et liens se mettent à jour plus bas, comme d'habitude.</p>
+
+      <label for="maj_date_select">Pour quelle date&nbsp;?</label>
+      <select id="maj_date_select" style="width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#f1efe4;font-size:16px;font-family:Lato,sans-serif"></select>
+
+      <label for="maj_invite" style="margin-top:14px">Invité·e(s) ce soir-là <span class="opt">(facultatif — laisse vide si tu joues en formation habituelle)</span></label>
+      <input type="text" id="maj_invite" placeholder="Ex : Mélanie Bergeron (chant)">
+
+      <label for="maj_texte" style="margin-top:14px">Texte de présentation pour cette soirée <span class="opt">(2-3 phrases — c'est ce qu'on publie pour annoncer le show)</span></label>
+      <textarea id="maj_texte" placeholder="Ex : Apéro Jazz spécial — Christine Tassan invite Mélanie Bergeron pour un set swing manouche tout en finesse…"></textarea>
+
+      <p style="color:rgba(255,255,255,0.55);font-size:12px;margin:10px 0 0">⏰ L'heure de ton show est déjà réglée avec La Brassée — pas besoin d'y toucher ici.</p>
+    </fieldset>
+
     <fieldset>
       <legend>Toi (ou votre groupe)</legend>
 
@@ -702,6 +718,7 @@
 
   let artiste = null;
   let concertLie = null;
+  let concertsAvenir = []; // toutes les dates à venir de l'artiste (bloc « mise à jour par date »)
   let photoArtisteFichier = null;
   let modeCandidature = false; // true si premier dépôt sans token (candidature spontanée)
   const photosHD = [];
@@ -890,12 +907,17 @@
         return;
       }
       artiste = data;
-      // Concert lié (premier concert à venir de l'artiste)
+      // Concerts à venir de l'artiste (pour l'en-tête + le bloc « mise à jour par date »)
+      const todayISO = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' });
       const { data: ca } = await supa
-        .from('concerts_artistes').select('concert_id, concerts(date_show, heure_debut, heure_fin, heure_soundcheck, titre_show)')
-        .eq('artiste_id', artiste.id)
-        .order('concert_id');
-      if (ca && ca.length > 0 && ca[0].concerts) concertLie = ca[0].concerts;
+        .from('concerts_artistes')
+        .select('concert_id, concerts(id, date_show, heure_debut, heure_fin, heure_soundcheck, titre_show, description_publique)')
+        .eq('artiste_id', artiste.id);
+      concertsAvenir = (ca || [])
+        .map(r => r.concerts)
+        .filter(c => c && c.date_show && c.date_show >= todayISO)
+        .sort((a, b) => a.date_show.localeCompare(b.date_show));
+      if (concertsAvenir.length > 0) concertLie = concertsAvenir[0];
 
       chargement.style.display = 'none';
       document.getElementById('app-charge').style.display = 'block';
@@ -910,6 +932,32 @@
         document.getElementById('date-show').textContent = 'à confirmer';
         document.getElementById('heure-soundcheck').textContent = 'à confirmer';
         document.getElementById('heures-show').textContent = 'à confirmer';
+      }
+
+      // Bloc « mise à jour pour une date précise » — visible si l'artiste a déjà
+      // au moins une date à venir (permanents / artistes programmés). Écrit
+      // l'invité + le texte sur l'event ; le sync calendrier préserve ces champs.
+      if (concertsAvenir.length > 0 && !modeCandidature) {
+        const blocMaj = document.getElementById('bloc-maj-date');
+        const selMaj = document.getElementById('maj_date_select');
+        if (blocMaj && selMaj) {
+          selMaj.innerHTML = concertsAvenir.map(c =>
+            `<option value="${c.id}">${formaterDate(c.date_show)} — ${(c.titre_show || 'Soirée').replace(/"/g, '&quot;')}</option>`
+          ).join('');
+          const prefillMaj = () => {
+            const c = concertsAvenir.find(x => String(x.id) === String(selMaj.value)) || concertsAvenir[0];
+            if (!c) return;
+            const inv = document.getElementById('maj_invite');
+            const txt = document.getElementById('maj_texte');
+            const m = (c.titre_show || '').match(/invite\s+(.+?)\s*(?:—|$)/i);
+            if (inv) inv.value = m ? m[1].trim() : '';
+            const desc = (c.description_publique || '').trim();
+            if (txt) txt.value = /^d[ée]tails?\s+à\s+suivre/i.test(desc) ? '' : desc;
+          };
+          selMaj.addEventListener('change', prefillMaj);
+          prefillMaj();
+          blocMaj.style.display = 'block';
+        }
       }
 
       // Préremplir les champs
@@ -1256,6 +1304,27 @@
       const { error: errMaj } = await supa
         .from('artistes_scene').update(update).eq('token_depot', artiste.token_depot);
       if (errMaj) throw errMaj;
+
+      // Mise à jour de la soirée choisie (invité + texte) directement sur l'event.
+      // sync.py préserve titre_show et description_publique → ces valeurs tiennent.
+      const selMaj = document.getElementById('maj_date_select');
+      const blocMaj = document.getElementById('bloc-maj-date');
+      if (blocMaj && blocMaj.style.display !== 'none' && selMaj && selMaj.value) {
+        const invite = (document.getElementById('maj_invite').value || '').trim();
+        const texte = (document.getElementById('maj_texte').value || '').trim();
+        const cu = {};
+        if (texte) cu.description_publique = texte;
+        if (invite) {
+          const c = concertsAvenir.find(x => String(x.id) === String(selMaj.value));
+          const cur = (c && c.titre_show) || '';
+          const suffix = cur.includes('—') ? cur.split('—').pop().trim() : (artiste.titre_set || '');
+          cu.titre_show = `${artiste.nom_artiste} invite ${invite}` + (suffix ? ` — ${suffix}` : '');
+        }
+        if (Object.keys(cu).length) {
+          const { error: errC } = await supa.from('concerts').update(cu).eq('id', selMaj.value);
+          if (errC) console.error('MAJ event (date précise) échouée :', errC);
+        }
+      }
 
       avancerProgress(barre, 100);
 
