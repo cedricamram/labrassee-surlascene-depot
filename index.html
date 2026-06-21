@@ -446,6 +446,28 @@
       <p style="color:rgba(255,255,255,0.55);font-size:12px;margin:10px 0 0">⏰ L'heure de ton show est déjà réglée avec La Brassée — pas besoin d'y toucher ici.</p>
     </fieldset>
 
+    <fieldset id="bloc-permanent-automne" style="display:none;border-color:rgba(247,209,53,0.5);background:linear-gradient(135deg,rgba(247,209,53,0.10),rgba(247,209,53,0.03))">
+      <legend>📅 Réserve tes dates d'automne</legend>
+      <p style="color:rgba(255,255,255,0.8);font-size:14px;margin:0 0 14px">En tant qu'habitué·e de la scène, l'automne (septembre à décembre) t'est réservé en priorité — il n'est pas ouvert au grand public. Choisis une soirée libre et réserve-la, puis recommence pour chacune de tes dates. Cédric confirme ensuite chaque réservation.</p>
+
+      <label for="perm_date_select">Soirée libre</label>
+      <select id="perm_date_select" style="width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#f1efe4;font-size:16px;font-family:Lato,sans-serif">
+        <option value="" disabled selected>— Chargement des soirées libres —</option>
+      </select>
+
+      <label for="perm_titre" style="margin-top:14px">Titre de la soirée <span class="opt">(facultatif — sinon on met ton nom)</span></label>
+      <input type="text" id="perm_titre" placeholder="Ex : Apéro Jazz">
+
+      <button type="button" class="envoyer" id="perm_bouton_reserver" style="margin-top:16px">Réserver cette date</button>
+
+      <div id="perm_reservees_wrap" style="display:none;margin-top:18px">
+        <p style="color:var(--jaune);font-weight:500;font-size:14px;margin:0 0 8px">Tes dates d'automne réservées</p>
+        <ul id="perm_reservees_liste" style="list-style:none;padding:0;margin:0;font-size:14px;color:rgba(255,255,255,0.85)"></ul>
+      </div>
+
+      <p style="color:rgba(255,255,255,0.55);font-size:12px;margin:12px 0 0">⏰ L'heure par défaut reprend ton horaire habituel — Cédric ajuste au besoin. Les mardis sont partagés entre plusieurs habitués : si une date file sous ton nez, c'est qu'elle vient d'être prise.</p>
+    </fieldset>
+
     <fieldset>
       <legend>Toi (ou votre groupe)</legend>
 
@@ -880,6 +902,113 @@
     selS.addEventListener('change', sync);
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Réservation des dates d'automne — réservée aux artistes PERMANENTS.
+  // L'automne (sept→déc) est fermé au public ; les permanents y réservent
+  // leurs soirées via leur lien perso (?t=). Insère un concert 'planifie'
+  // (aucune diffusion publique) lié à l'artiste, via RPC reserver_date_scene.
+  // ─────────────────────────────────────────────────────────────────────────
+  const AUTOMNE_DEBUT = '2026-09-01';
+  const AUTOMNE_FIN = '2026-12-31';
+
+  async function fetchConcertsAutomne() {
+    const url = `${SUPABASE_URL}/rest/v1/concerts?select=date_show,statut&date_show=gte.${AUTOMNE_DEBUT}&date_show=lte.${AUTOMNE_FIN}&statut=in.(planifie,confirme)&limit=500`;
+    const res = await fetch(url, { headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY } });
+    if (!res.ok) throw new Error('Supabase HTTP ' + res.status);
+    const rows = await res.json();
+    const set = new Set();
+    for (const r of rows) set.add(r.date_show);
+    return set;
+  }
+
+  function genererDatesAutomnePermanent(bookes) {
+    // Soirs ouverts lun/mar/jeu/ven/sam de l'automne, non bookés, à partir d'aujourd'hui.
+    const today = todayMtlISO();
+    let cur = AUTOMNE_DEBUT < today ? today : AUTOMNE_DEBUT;
+    const out = [];
+    while (cur <= AUTOMNE_FIN) {
+      const d = new Date(cur + 'T00:00:00');
+      const dow = d.getDay(); // 0=dim..6=sam ; mer(3) et dim(0) fermés
+      if ([1, 2, 4, 5, 6].includes(dow) && !bookes.has(cur)) out.push(cur);
+      cur = isoAddDays(cur, 1);
+    }
+    return out;
+  }
+
+  async function peuplerSelectAutomne() {
+    const sel = document.getElementById('perm_date_select');
+    if (!sel) return;
+    let bookes;
+    try { bookes = await fetchConcertsAutomne(); }
+    catch (e) { sel.innerHTML = '<option value="" disabled selected>⚠️ Impossible de charger — recharge la page</option>'; return; }
+    const libres = genererDatesAutomnePermanent(bookes);
+    if (libres.length === 0) {
+      sel.innerHTML = '<option value="" disabled selected>Plus aucune soirée libre cet automne</option>';
+      return;
+    }
+    const parMois = new Map();
+    for (const iso of libres) {
+      const cle = iso.slice(0, 7);
+      if (!parMois.has(cle)) parMois.set(cle, []);
+      parMois.get(cle).push(iso);
+    }
+    let html = '<option value="" disabled selected>— Choisis une soirée —</option>';
+    for (const [cle, dates] of parMois) {
+      const m = cle.match(/^(\d{4})-(\d{2})$/);
+      const lib = m ? `${MOIS_LONG_DEPOT[parseInt(m[2]) - 1].charAt(0).toUpperCase() + MOIS_LONG_DEPOT[parseInt(m[2]) - 1].slice(1)} ${m[1]}` : cle;
+      html += `<optgroup label="${lib}">`;
+      for (const iso of dates) html += `<option value="${iso}">${isoToLabel(iso)}</option>`;
+      html += '</optgroup>';
+    }
+    sel.innerHTML = html;
+  }
+
+  async function reserverDateAutomne() {
+    const sel = document.getElementById('perm_date_select');
+    const titreEl = document.getElementById('perm_titre');
+    const bouton = document.getElementById('perm_bouton_reserver');
+    if (!sel || !sel.value) {
+      afficherMessage('erreur', 'Choisis une date', 'Sélectionne une soirée libre avant de réserver.');
+      return;
+    }
+    const dateISO = sel.value;
+    const titre = ((titreEl && titreEl.value) || '').trim();
+    bouton.disabled = true;
+    const ancien = bouton.textContent;
+    bouton.textContent = 'Réservation…';
+    try {
+      const { error } = await supa.rpc('reserver_date_scene', {
+        p_token: artiste.token_depot,
+        p_date_show: dateISO,
+        p_titre: titre || null,
+      });
+      if (error) throw error;
+      const wrap = document.getElementById('perm_reservees_wrap');
+      const liste = document.getElementById('perm_reservees_liste');
+      if (wrap && liste) {
+        wrap.style.display = 'block';
+        const li = document.createElement('li');
+        li.style.padding = '6px 0';
+        li.style.borderBottom = '1px solid var(--glass-border)';
+        li.textContent = '✓ ' + isoToLabel(dateISO) + (titre ? ' — ' + titre : '');
+        liste.appendChild(li);
+      }
+      if (titreEl) titreEl.value = '';
+      await peuplerSelectAutomne(); // retire la date qui vient d'être prise
+      afficherMessage('succes', '✓ Date réservée', `${isoToLabel(dateISO)} est réservée à ton nom. Cédric la confirme bientôt. Tu peux en réserver d'autres.`);
+    } catch (err) {
+      console.error('Réservation automne échouée :', err);
+      const msg = ((err && err.message) || '').includes('déjà réservée')
+        ? "Cette soirée vient d'être prise par un autre habitué. Choisis-en une autre — la liste est à jour."
+        : `${(err && err.message) || err}. Réessaye, ou écris à contact@labrassee.cafe.`;
+      afficherMessage('erreur', 'Réservation impossible', msg);
+      await peuplerSelectAutomne();
+    } finally {
+      bouton.disabled = false;
+      bouton.textContent = ancien;
+    }
+  }
+
   async function init() {
     const chargement = document.getElementById('app-chargement');
     try {
@@ -989,6 +1118,15 @@
           selMaj.addEventListener('change', prefillMaj);
           prefillMaj();
           blocMaj.style.display = 'block';
+        }
+      }
+
+      // Bloc « réserve tes dates d'automne » — uniquement pour les permanents.
+      if (artiste.permanence === true && !modeCandidature) {
+        const blocPerm = document.getElementById('bloc-permanent-automne');
+        if (blocPerm) {
+          blocPerm.style.display = 'block';
+          peuplerSelectAutomne().catch(e => console.error('peuplerSelectAutomne:', e));
         }
       }
 
@@ -1244,6 +1382,8 @@
   }
 
   document.getElementById('bouton-envoi').addEventListener('click', envoyerTout);
+  const permBtnReserver = document.getElementById('perm_bouton_reserver');
+  if (permBtnReserver) permBtnReserver.addEventListener('click', reserverDateAutomne);
 
   async function envoyerTout() {
     const bouton = document.getElementById('bouton-envoi');
