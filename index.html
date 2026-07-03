@@ -1072,11 +1072,11 @@
       const todayISO = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' });
       const { data: ca } = await supa
         .from('concerts_artistes')
-        .select('concert_id, concerts(id, date_show, heure_debut, heure_fin, heure_soundcheck, titre_show, description_publique)')
+        .select('concert_id, concerts(id, date_show, statut, heure_debut, heure_fin, heure_soundcheck, titre_show, description_publique)')
         .eq('artiste_id', artiste.id);
       concertsAvenir = (ca || [])
         .map(r => r.concerts)
-        .filter(c => c && c.date_show && c.date_show >= todayISO)
+        .filter(c => c && c.date_show && c.date_show >= todayISO && ['planifie', 'confirme'].includes(c.statut))
         .sort((a, b) => a.date_show.localeCompare(b.date_show));
       if (concertsAvenir.length > 0) concertLie = concertsAvenir[0];
 
