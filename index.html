@@ -830,8 +830,9 @@
 
   function genererDatesLibres(bookes) {
     // Génère les soirs ouverts dans la fenêtre [today+7j, today+120j]
-    // Ouverts par mois : juin = lun/mar/jeu/ven/sam, juill-août = ven/sam,
-    // sept-déc = aucun (permanents prioritaires), reste = lun/mar/jeu/ven/sam.
+    // Ouverts par mois : juill-août = ven/sam (été), reste = lun/mar/jeu/ven/sam.
+    // Sept-déc RÉOUVERT à tous le 2026-07-04 (go Cédric) : les permanents ont
+    // réservé en priorité (juin), leurs dates sont bookées donc auto-exclues.
     const today = todayMtlISO();
     const minDate = isoAddDays(today, 7);
     const maxDate = isoAddDays(today, 120);
@@ -841,12 +842,8 @@
       const d = new Date(cur + 'T00:00:00');
       const dow = d.getDay();
       const moisHum = d.getMonth() + 1;
-      // Sept-déc : aucun jour ouvert pour candidature (permanents prioritaires)
-      const isPermMonth = moisHum >= 9 && moisHum <= 12;
-      // Juill-août : ven/sam seulement
-      const joursOuverts = isPermMonth
-        ? new Set()
-        : (moisHum === 7 || moisHum === 8) ? new Set([5, 6]) : new Set([1, 2, 4, 5, 6]);
+      // Juill-août : ven/sam seulement (été) ; autres mois : lun/mar/jeu/ven/sam
+      const joursOuverts = (moisHum === 7 || moisHum === 8) ? new Set([5, 6]) : new Set([1, 2, 4, 5, 6]);
       // Saison Impro lundis 25 mai → 24 août : exclus (bookés permanent)
       const isImpro = dow === 1 && cur >= IMPRO_DEBUT_DEPOT && cur <= IMPRO_FIN_DEPOT;
       if (joursOuverts.has(dow) && !isImpro && !bookes.has(cur)) {
