@@ -218,6 +218,11 @@
     background: rgba(0, 0, 0, 0.4); box-shadow: 0 0 0 3px rgba(247, 209, 53, 0.1);
   }
   input::placeholder, textarea::placeholder { color: rgba(255, 255, 255, 0.3); }
+  /* Listes déroulantes (dates) — le menu natif se dessine sur fond clair si on ne force pas
+     le schéma sombre : texte crème sur blanc = illisible. Correctif général, tous navigateurs. */
+  select { color-scheme: dark; }
+  select option, select optgroup { background-color: #14110c; color: #f1efe4; }
+  select option:disabled { color: rgba(241, 239, 228, 0.5); }
   textarea { resize: vertical; min-height: 100px; }
   .deux-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .trois-cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
