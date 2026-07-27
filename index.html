@@ -452,8 +452,8 @@
     </fieldset>
 
     <fieldset id="bloc-permanent-automne" style="display:none;border-color:rgba(247,209,53,0.5);background:linear-gradient(135deg,rgba(247,209,53,0.10),rgba(247,209,53,0.03))">
-      <legend>📅 Réserve tes dates d'automne</legend>
-      <p style="color:rgba(255,255,255,0.8);font-size:14px;margin:0 0 14px">En tant qu'habitué·e de la scène, l'automne (septembre à décembre) t'est réservé en priorité — il n'est pas ouvert au grand public. Choisis une soirée libre et réserve-la, puis recommence pour chacune de tes dates. Cédric confirme ensuite chaque réservation.</p>
+      <legend id="perm_legend">📅 Réserve tes dates d'automne</legend>
+      <p id="perm_intro" style="color:rgba(255,255,255,0.8);font-size:14px;margin:0 0 14px">En tant qu'habitué·e de la scène, l'automne (septembre à décembre) t'est réservé en priorité — il n'est pas ouvert au grand public. Choisis une soirée libre et réserve-la, puis recommence pour chacune de tes dates. Cédric confirme ensuite chaque réservation.</p>
 
       <label for="perm_date_select">Soirée libre</label>
       <select id="perm_date_select" style="width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#f1efe4;font-size:16px;font-family:Lato,sans-serif">
@@ -466,11 +466,11 @@
       <button type="button" class="envoyer" id="perm_bouton_reserver" style="margin-top:16px">Réserver cette date</button>
 
       <div id="perm_reservees_wrap" style="display:none;margin-top:18px">
-        <p style="color:var(--jaune);font-weight:500;font-size:14px;margin:0 0 8px">Tes dates d'automne réservées</p>
+        <p id="perm_reservees_titre" style="color:var(--jaune);font-weight:500;font-size:14px;margin:0 0 8px">Tes dates d'automne réservées</p>
         <ul id="perm_reservees_liste" style="list-style:none;padding:0;margin:0;font-size:14px;color:rgba(255,255,255,0.85)"></ul>
       </div>
 
-      <p style="color:rgba(255,255,255,0.55);font-size:12px;margin:12px 0 0">⏰ L'heure par défaut reprend ton horaire habituel — Cédric ajuste au besoin. Les mardis sont partagés entre plusieurs habitués : si une date file sous ton nez, c'est qu'elle vient d'être prise.</p>
+      <p id="perm_note" style="color:rgba(255,255,255,0.55);font-size:12px;margin:12px 0 0">⏰ L'heure par défaut reprend ton horaire habituel — Cédric ajuste au besoin. Les mardis sont partagés entre plusieurs habitués : si une date file sous ton nez, c'est qu'elle vient d'être prise.</p>
     </fieldset>
 
     <fieldset>
@@ -965,6 +965,48 @@
     sel.innerHTML = html;
   }
 
+  // Même sélecteur que les permanents, mais alimenté par les soirs libres
+  // ORDINAIRES (préavis 7 j, horizon 120 j, règle d'été) — exactement ce que
+  // voit un artiste qui candidate. La RPC applique les mêmes bornes côté serveur.
+  async function peuplerSelectDatesLibresReservation() {
+    const sel = document.getElementById('perm_date_select');
+    if (!sel) return;
+    let bookes;
+    try { bookes = await fetchConcertsBookes(); }
+    catch (e) {
+      sel.innerHTML = '<option value="" disabled selected>⚠️ Impossible de charger — recharge la page</option>';
+      return;
+    }
+    const libres = genererDatesLibres(bookes);
+    if (libres.length === 0) {
+      sel.innerHTML = '<option value="" disabled selected>Aucune soirée libre dans les 4 prochains mois — écris à contact@labrassee.cafe</option>';
+      return;
+    }
+    const parMois = new Map();
+    for (const iso of libres) {
+      const cle = iso.slice(0, 7);
+      if (!parMois.has(cle)) parMois.set(cle, []);
+      parMois.get(cle).push(iso);
+    }
+    let html = '<option value="" disabled selected>— Choisis une soirée —</option>';
+    for (const [cle, dates] of parMois) {
+      const m = cle.match(/^(\d{4})-(\d{2})$/);
+      const lib = m ? `${MOIS_LONG_DEPOT[parseInt(m[2]) - 1].charAt(0).toUpperCase() + MOIS_LONG_DEPOT[parseInt(m[2]) - 1].slice(1)} ${m[1]}` : cle;
+      html += `<optgroup label="${lib}">`;
+      for (const iso of dates) html += `<option value="${iso}">${isoToLabel(iso)}</option>`;
+      html += '</optgroup>';
+    }
+    sel.innerHTML = html;
+  }
+
+  // Après une réservation, on rafraîchit la bonne liste : l'automne réservé pour
+  // un permanent, les soirs libres ordinaires pour un artiste connu.
+  function rafraichirSelectReservation() {
+    return (artiste && artiste.permanence === true)
+      ? peuplerSelectAutomne()
+      : peuplerSelectDatesLibresReservation();
+  }
+
   async function reserverDateAutomne() {
     const sel = document.getElementById('perm_date_select');
     const titreEl = document.getElementById('perm_titre');
@@ -996,7 +1038,7 @@
         liste.appendChild(li);
       }
       if (titreEl) titreEl.value = '';
-      await peuplerSelectAutomne(); // retire la date qui vient d'être prise
+      await rafraichirSelectReservation(); // retire la date qui vient d'être prise
       afficherMessage('succes', '✓ Date réservée', `${isoToLabel(dateISO)} est réservée à ton nom. Cédric la confirme bientôt. Tu peux en réserver d'autres.`);
     } catch (err) {
       console.error('Réservation automne échouée :', err);
@@ -1004,7 +1046,7 @@
         ? "Cette soirée vient d'être prise par un autre habitué. Choisis-en une autre — la liste est à jour."
         : `${(err && err.message) || err}. Réessaye, ou écris à contact@labrassee.cafe.`;
       afficherMessage('erreur', 'Réservation impossible', msg);
-      await peuplerSelectAutomne();
+      await rafraichirSelectReservation();
     } finally {
       bouton.disabled = false;
       bouton.textContent = ancien;
@@ -1123,12 +1165,35 @@
         }
       }
 
-      // Bloc « réserve tes dates d'automne » — uniquement pour les permanents.
-      if (artiste.permanence === true && !modeCandidature) {
+      // Bloc « réserver une date » — deux publics, deux régimes (2026-07-27).
+      //  • PERMANENT : l'automne lui est réservé (comportement d'origine).
+      //  • ARTISTE CONNU SANS DATE À VENIR : les soirs libres ordinaires.
+      // Avant, seuls les permanents voyaient ce bloc. Un habitué revenu sans date
+      // ouvrait son lien et lisait « DATE DU SHOW : À CONFIRMER » sans pouvoir rien
+      // proposer — alors que le courriel qu'on lui envoie promet le contraire
+      // (« tu choisis simplement ta date à ton retour »). La promesse tient enfin.
+      const peutReserver = !modeCandidature &&
+        (artiste.permanence === true || concertsAvenir.length === 0);
+      if (peutReserver) {
         const blocPerm = document.getElementById('bloc-permanent-automne');
         if (blocPerm) {
+          const perm = artiste.permanence === true;
+          if (!perm) {
+            // Les textes du bloc parlent d'automne réservé aux habitués : faux ici.
+            const l = document.getElementById('perm_legend');
+            const p = document.getElementById('perm_intro');
+            const t = document.getElementById('perm_reservees_titre');
+            const n = document.getElementById('perm_note');
+            if (l) l.textContent = '📅 Choisis ta prochaine date';
+            if (p) p.textContent = "Envie de revenir jouer ? Choisis une soirée libre et pose-la — "
+              + "Cédric te confirme ensuite. Tu peux en proposer deux au maximum en attendant sa réponse.";
+            if (t) t.textContent = 'Les dates que tu viens de proposer';
+            if (n) n.textContent = "⏰ Soundcheck 18 h 30, show 19 h 30 — Cédric ajuste au besoin. "
+              + "Une date proposée n'est pas encore confirmée : elle le devient quand Cédric te répond.";
+          }
           blocPerm.style.display = 'block';
-          peuplerSelectAutomne().catch(e => console.error('peuplerSelectAutomne:', e));
+          (perm ? peuplerSelectAutomne() : peuplerSelectDatesLibresReservation())
+            .catch(e => console.error('peuplement des dates réservables:', e));
         }
       }
 
