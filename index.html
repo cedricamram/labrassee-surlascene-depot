@@ -84,7 +84,7 @@
     50% { opacity: 0.08; transform: translate(-50%, -50%) scale(1.02); }
   }
 
-  #app-chargement, #app-charge, #app-erreur-token, header, main, footer { position: relative; z-index: 2; }
+  #app-chargement, #app-charge, #app-erreur-token, #app-porte, header, main, footer { position: relative; z-index: 2; }
 
   /* Catégorie d'artiste — masque les blocs musique-spécifiques si la catégorie n'est pas « musique »,
      et inversement les blocs « non-musique » quand on est en catégorie musique.
@@ -122,6 +122,45 @@
     text-transform: uppercase; letter-spacing: 2px; font-size: 14px;
     border-bottom: 1px solid var(--jaune-trame); padding-bottom: 4px;
   }
+  /* Porte de récupération du dossier artiste */
+  .ecran-porte {
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center; padding: 60px 24px;
+  }
+  .ecran-porte .porte-accroches {
+    display: flex; gap: 40px; flex-wrap: wrap; justify-content: center;
+    margin-bottom: 48px; max-width: 720px;
+  }
+  .ecran-porte .porte-accroche {
+    flex: 1; min-width: 220px; max-width: 300px; text-align: left;
+  }
+  .ecran-porte .porte-accroche h3 {
+    font-family: var(--font-titre); font-size: 22px; font-weight: 200;
+    color: var(--jaune); margin-bottom: 10px; letter-spacing: 0.5px;
+  }
+  .ecran-porte .porte-accroche p { color: var(--blanc-doux); font-size: 15px; line-height: 1.6; }
+  .ecran-porte .porte-form {
+    display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+    max-width: 480px; width: 100%;
+  }
+  .ecran-porte .porte-form input[type="email"] {
+    flex: 1; min-width: 220px; padding: 14px 18px; border-radius: 8px;
+    border: 1px solid rgba(247,209,53,0.35); background: rgba(255,255,255,0.06);
+    color: var(--blanc); font-size: 16px; font-family: var(--font-corps);
+    outline: none; transition: border-color 0.2s;
+  }
+  .ecran-porte .porte-form input[type="email"]:focus { border-color: var(--jaune); }
+  .ecran-porte .porte-form input[type="email"]::placeholder { color: rgba(242,233,214,0.45); }
+  .ecran-porte .porte-form button {
+    padding: 14px 22px; background: var(--jaune); color: #1a1a1a;
+    border: none; border-radius: 8px; font-weight: 700; font-size: 15px;
+    cursor: pointer; transition: opacity 0.2s; white-space: nowrap;
+  }
+  .ecran-porte .porte-form button:disabled { opacity: 0.6; cursor: wait; }
+  .ecran-porte .porte-confirm {
+    margin-top: 28px; max-width: 440px; color: var(--blanc-doux); font-size: 15px; line-height: 1.6; display: none;
+  }
+  .ecran-porte .porte-confirm strong { color: var(--jaune); }
 
   header {
     text-align: center; padding: 56px 24px 40px;
@@ -751,6 +790,27 @@
   <a href="mailto:contact@labrassee.cafe">contact@labrassee.cafe</a>
 </div>
 
+<div id="app-porte" class="ecran-porte" style="display:none">
+  <div class="porte-accroches">
+    <div class="porte-accroche">
+      <h3>Tu as déjà joué chez nous ?</h3>
+      <p>Tu ne retrouves plus le lien de ton dossier ? Laisse ton courriel, on te le renvoie. Tu n'auras plus qu'à choisir ta date.</p>
+    </div>
+    <div class="porte-accroche">
+      <h3>Tes photos datent un peu ?</h3>
+      <p>Nouvelle formation, nouvelles images, nouveaux enregistrements — ouvre ton dossier avec ton courriel et mets-le à jour. On en tiendra compte pour ton prochain passage.</p>
+    </div>
+  </div>
+  <form class="porte-form" id="porte-form" onsubmit="soumettrePorte(event)">
+    <input type="email" id="porte-courriel" placeholder="Ton courriel" required autocomplete="email">
+    <button type="submit" id="porte-btn">Recevoir mon lien</button>
+  </form>
+  <div class="porte-confirm" id="porte-confirm">
+    <strong>C'est parti.</strong> Si ce courriel est chez nous, tu recevras ton lien dans la minute.<br>
+    Garde-le précieusement : c'est ta porte d'entrée, toujours la même.
+  </div>
+</div>
+
 <script>
   async function chargerSVG(url, elementId) {
     try {
@@ -1097,7 +1157,7 @@
       }
       if (!token) {
         chargement.style.display = 'none';
-        document.getElementById('app-erreur-token').style.display = 'flex';
+        document.getElementById('app-porte').style.display = 'flex';
         return;
       }
       // Lecture via RPC token-gated (get_dossier_scene). La fusion de tokens est
@@ -1108,7 +1168,7 @@
       if (error || !data || !data.id) {
         console.error('Erreur chargement artiste:', error);
         chargement.style.display = 'none';
-        document.getElementById('app-erreur-token').style.display = 'flex';
+        document.getElementById('app-porte').style.display = 'flex';
         return;
       }
       artiste = data;
@@ -1689,6 +1749,24 @@
   }
 
   init();
+
+  async function soumettrePorte(evt) {
+    evt.preventDefault();
+    const courriel = (document.getElementById('porte-courriel').value || '').trim();
+    const btn = document.getElementById('porte-btn');
+    if (!courriel) return;
+    btn.disabled = true;
+    btn.textContent = 'Envoi…';
+    try {
+      await fetch('https://labrassee.cafe/api/artiste-porte', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ courriel, plateforme: 'scene' }),
+      });
+    } catch (e) { /* ignore — on affiche toujours la confirmation */ }
+    document.getElementById('porte-form').style.display = 'none';
+    document.getElementById('porte-confirm').style.display = 'block';
+  }
 </script>
 
 <footer class="iacouba-sig"><a href="https://iacouba.ca" target="_blank" rel="noopener"><span>par</span><img src="/iacouba-lockup-contenu.svg" alt="IAcouba"></a></footer><style>.iacouba-sig{display:flex;justify-content:center;padding:20px 12px 26px;margin-top:18px;border-top:1px solid rgba(242,233,214,.12)}.iacouba-sig a{display:flex;align-items:center;gap:.45rem;text-decoration:none;color:rgba(242,233,214,.55);font-size:.74rem;letter-spacing:.02em;opacity:.92}.iacouba-sig img{height:17px;display:block}</style>
