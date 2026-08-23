@@ -1741,6 +1741,7 @@
   }
 
   async function uploadFichier(fichier, path) {
+    if (fichier.size === 0) throw new Error('Ce fichier est vide (0 octet) — il n\'a probablement pas fini de se télécharger. Sélectionne-le à nouveau.');
     const { data, error } = await supa.storage.from('artistes-scene-epk').upload(path, fichier, { cacheControl: '3600', upsert: false });
     if (error) throw error;
     return data.path;
