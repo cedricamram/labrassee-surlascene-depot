@@ -878,10 +878,12 @@
     return `${jourSem.charAt(0).toUpperCase() + jourSem.slice(1)} ${jour} ${MOIS_LONG_DEPOT[mois]} ${annee}`;
   }
 
+  const FIN_OUVERTURE = '2027-03-31';   // dates proposables jusqu'à fin mars (Cédric, 2026-09-28)
   async function fetchConcertsBookes() {
     // Récupère toutes les dates où il y a déjà un concert planifié/confirmé
     const today = todayMtlISO();
-    const horizon = isoAddDays(today, 180);
+    // Fenêtre ouverte jusqu'à fin mars 2027 (Cédric, 2026-09-28), jamais moins de 120 j.
+    const horizon = [isoAddDays(today, 180), FIN_OUVERTURE].sort().pop();
     const url = `${SUPABASE_URL}/rest/v1/concerts?select=date_show,statut,titre_show&date_show=gte.${today}&date_show=lte.${horizon}&statut=in.(planifie,confirme)&limit=500`;
     const res = await fetch(url, {
       headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY },
@@ -900,7 +902,7 @@
     // réservé en priorité (juin), leurs dates sont bookées donc auto-exclues.
     const today = todayMtlISO();
     const minDate = isoAddDays(today, 7);
-    const maxDate = isoAddDays(today, 120);
+    const maxDate = [isoAddDays(today, 120), FIN_OUVERTURE].sort().pop();
     const out = [];
     let cur = minDate;
     while (cur <= maxDate) {
