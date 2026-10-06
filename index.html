@@ -557,9 +557,9 @@
           <div class="dropzone-artiste" id="dropzone-artiste">
             <div class="icone">📷</div>
             <div class="label-zone">Glisser ou cliquer</div>
-            <div class="hint">Max 10 Mo</div>
+            <div class="hint">JPG, PNG ou HEIC</div>
             <img id="apercu-artiste" style="display:none">
-            <input type="file" id="photo-artiste-input" accept="image/*">
+            <input type="file" id="photo-artiste-input" accept="image/*,.heic,.heif">
           </div>
         </div>
       </div>
@@ -666,7 +666,7 @@
     <fieldset>
       <legend>Photos HD pour la comm</legend>
       <div class="info-batch">
-        Glisse jusqu'à 6 photos haute définition (JPG/PNG, max 10 Mo chacune). On les utilisera pour Facebook, Instagram, la page publique de La Brassée et la TV Cuisine. Idéalement, des photos libres de droits (ou dont tu as les droits) — mentionne en commentaire si crédit photo à indiquer.
+        Glisse jusqu'à 6 photos haute définition (JPG, PNG ou HEIC (photos d'iPhone acceptées)). On les utilisera pour Facebook, Instagram, la page publique de La Brassée et la TV Cuisine. Idéalement, des photos libres de droits (ou dont tu as les droits) — mentionne en commentaire si crédit photo à indiquer.
       </div>
       <div id="photos-existantes-bloc" style="display:none">
         <div class="info-batch" style="border-color:rgba(247,209,53,0.4);background:rgba(247,209,53,0.06)">
@@ -677,8 +677,8 @@
       <div class="dropzone-batch" id="dropzone-batch">
         <div class="icone">🖼️</div>
         <div class="titre">Glisse tes photos HD ici</div>
-        <div class="hint">Ou clique pour parcourir · JPG/PNG, max 10 Mo</div>
-        <input type="file" id="batch-input" accept="image/*" multiple>
+        <div class="hint">Ou clique pour parcourir · JPG, PNG ou HEIC</div>
+        <input type="file" id="batch-input" accept="image/*,.heic,.heif" multiple>
       </div>
       <div class="compteur"><span id="nb-photos">0</span> photo(s) ajoutée(s)</div>
       <div class="photos-zone" id="photos-zone"></div>
@@ -1335,12 +1335,102 @@
   photoArtisteInput.addEventListener('change', (e) => {
     if (e.target.files.length > 0) traiterPhotoArtiste(e.target.files[0]);
   });
-  function traiterPhotoArtiste(fichier) {
-    if (!fichier.type.startsWith('image/')) return;
-    photoArtisteFichier = fichier;
+  async function traiterPhotoArtiste(brut) {
+    effacerRefusPhoto(dzArtiste);
+    const note = noterPreparation(dzArtiste);
+    const prep = await preparerPhoto(brut);
+    note();
+    if (!prep.ok) { afficherRefusPhoto(dzArtiste, [prep.raison]); return; }
+    photoArtisteFichier = prep.fichier;
     const reader = new FileReader();
     reader.onload = (e) => { apercuArtiste.src = e.target.result; apercuArtiste.style.display = 'block'; };
-    reader.readAsDataURL(fichier);
+    reader.readAsDataURL(photoArtisteFichier);
+  }
+
+  // ----- Photos : accepter ce que les téléphones envoient vraiment -----
+  // 05/10/2026 : une artiste n'arrivait pas à déposer ses photos. Une photo
+  // HEIC/HEIF (iPhone, iCloud, Mac) arrive souvent SANS type : elle était
+  // jetée sans un mot. Désormais on la reconnaît par son extension, on la
+  // convertit en JPEG dans le navigateur, on allège les photos trop lourdes,
+  // et si on n'y arrive pas, on DIT à l'artiste quoi faire.
+  const PHOTO_MAX_MO = 10;
+  const PHOTO_COTE_MAX = 2400;
+  const EXT_IMAGE = /\.(jpe?g|png|webp|gif|heic|heif)$/i;
+  const EXT_HEIC = /\.(heic|heif)$/i;
+  let heic2anyPromesse = null;
+
+  function chargerHeic2any() {
+    if (window.heic2any) return Promise.resolve(window.heic2any);
+    if (!heic2anyPromesse) {
+      heic2anyPromesse = new Promise((ok, ko) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+        s.onload = () => ok(window.heic2any);
+        s.onerror = () => { heic2anyPromesse = null; ko(new Error('heic2any')); };
+        document.head.appendChild(s);
+      });
+    }
+    return heic2anyPromesse;
+  }
+
+  async function versJpeg(source, nom) {
+    const bitmap = await createImageBitmap(source);
+    const echelle = Math.min(1, PHOTO_COTE_MAX / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * echelle);
+    canvas.height = Math.round(bitmap.height * echelle);
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise((ok) => canvas.toBlob(ok, 'image/jpeg', 0.88));
+    if (!blob) throw new Error('canvas');
+    return new File([blob], nom.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+  }
+
+  async function preparerPhoto(f) {
+    const type = f.type || '';
+    const estImage = type.startsWith('image/') || EXT_IMAGE.test(f.name);
+    if (!estImage) return { ok: false, raison: `${f.name} : ce n'est pas une photo (JPG, PNG ou HEIC).` };
+    if (f.size === 0) return { ok: false, raison: `${f.name} : le fichier est vide, il n'a sans doute pas fini de se télécharger depuis iCloud. Choisis-le à nouveau dans un instant.` };
+    const estHeic = /hei[cf]/i.test(type) || EXT_HEIC.test(f.name);
+    const tropLourde = f.size > PHOTO_MAX_MO * 1024 * 1024;
+    if (!estHeic && !tropLourde && type.startsWith('image/')) return { ok: true, fichier: f };
+    try {
+      return { ok: true, fichier: await versJpeg(f, f.name) };
+    } catch (e) { /* le navigateur ne sait pas lire ce format : on essaie la conversion HEIC */ }
+    if (estHeic) {
+      try {
+        const heic2any = await chargerHeic2any();
+        const sortie = await heic2any({ blob: f, toType: 'image/jpeg', quality: 0.88 });
+        const blob = Array.isArray(sortie) ? sortie[0] : sortie;
+        return { ok: true, fichier: await versJpeg(blob, f.name) };
+      } catch (e) { /* on tombe sur le message ci-dessous */ }
+    }
+    return { ok: false, raison: `${f.name} : on n'arrive pas à lire cette photo. Enregistre-la en JPG (sur iPhone : Partager, puis « Enregistrer l'image ») et dépose-la à nouveau.` };
+  }
+
+  // Une conversion HEIC prend quelques secondes : on le dit, pour que
+  // l'artiste n'ait pas l'impression que rien ne se passe.
+  function noterPreparation(zone) {
+    const div = document.createElement('div');
+    div.className = 'preparation-photo';
+    div.style.cssText = 'margin-top:10px;font-size:15px;color:var(--gris)';
+    div.textContent = 'Préparation de la photo…';
+    const minuterie = setTimeout(() => zone.insertAdjacentElement('afterend', div), 300);
+    return () => { clearTimeout(minuterie); div.remove(); };
+  }
+
+  function effacerRefusPhoto(zone) {
+    const ancien = zone.parentNode.querySelector('.refus-photo');
+    if (ancien) ancien.remove();
+  }
+
+  function afficherRefusPhoto(zone, raisons) {
+    effacerRefusPhoto(zone);
+    const div = document.createElement('div');
+    div.className = 'refus-photo';
+    div.setAttribute('role', 'alert');
+    div.style.cssText = 'margin-top:10px;padding:10px 12px;border-radius:8px;background:rgba(255,120,90,.12);border:1px solid rgba(255,120,90,.5);color:#ffd9cf;font-size:15px;line-height:1.4';
+    div.innerHTML = raisons.map(escaperHtml).join('<br>');
+    zone.insertAdjacentElement('afterend', div);
   }
 
   // Batch photos HD
@@ -1353,18 +1443,25 @@
     e.preventDefault(); dzBatch.classList.remove('drag-actif');
     traiterBatch(e.dataTransfer.files);
   });
-  batchInput.addEventListener('change', (e) => traiterBatch(e.target.files));
+  batchInput.addEventListener('change', (e) => { traiterBatch(Array.from(e.target.files)); e.target.value = ''; });
 
-  function traiterBatch(fichiers) {
-    Array.from(fichiers).forEach((f) => {
-      if (!f.type.startsWith('image/')) return;
+  async function traiterBatch(fichiers) {
+    effacerRefusPhoto(dzBatch);
+    const refus = [];
+    const note = noterPreparation(dzBatch);
+    for (const brut of Array.from(fichiers)) {
+      const prep = await preparerPhoto(brut);
+      if (!prep.ok) { refus.push(prep.raison); continue; }
+      const f = prep.fichier;
       const reader = new FileReader();
       reader.onload = (e) => {
         photosHD.push({ fichier: f, apercu_dataurl: e.target.result, nom: f.name });
         renderPhotos();
       };
       reader.readAsDataURL(f);
-    });
+    }
+    note();
+    if (refus.length > 0) afficherRefusPhoto(dzBatch, refus);
   }
 
   function renderPhotos() {
