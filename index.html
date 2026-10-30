@@ -1338,7 +1338,9 @@
   async function traiterPhotoArtiste(brut) {
     effacerRefusPhoto(dzArtiste);
     const note = noterPreparation(dzArtiste);
-    const prep = await preparerPhoto(brut);
+    // 30/10/2026 : la photo de l'artiste (petite vignette de la fiche) est allégée dès 1,5 Mo — un envoi
+    // de plusieurs Mo calait sur un réseau de téléphone. Les photos HD gardent leur seuil (10 Mo).
+    const prep = await preparerPhoto(brut, PORTRAIT_SEUIL_MO);
     note();
     if (!prep.ok) { afficherRefusPhoto(dzArtiste, [prep.raison]); return; }
     photoArtisteFichier = prep.fichier;
@@ -1355,6 +1357,7 @@
   // et si on n'y arrive pas, on DIT à l'artiste quoi faire.
   const PHOTO_MAX_MO = 10;
   const PHOTO_COTE_MAX = 2400;
+  const PORTRAIT_SEUIL_MO = 1.5;
   const EXT_IMAGE = /\.(jpe?g|png|webp|gif|heic|heif)$/i;
   const EXT_HEIC = /\.(heic|heif)$/i;
   let heic2anyPromesse = null;
@@ -1385,13 +1388,13 @@
     return new File([blob], nom.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
   }
 
-  async function preparerPhoto(f) {
+  async function preparerPhoto(f, seuilMo = PHOTO_MAX_MO) {
     const type = f.type || '';
     const estImage = type.startsWith('image/') || EXT_IMAGE.test(f.name);
     if (!estImage) return { ok: false, raison: `${f.name} : ce n'est pas une photo (JPG, PNG ou HEIC).` };
     if (f.size === 0) return { ok: false, raison: `${f.name} : le fichier est vide, il n'a sans doute pas fini de se télécharger depuis iCloud. Choisis-le à nouveau dans un instant.` };
     const estHeic = /hei[cf]/i.test(type) || EXT_HEIC.test(f.name);
-    const tropLourde = f.size > PHOTO_MAX_MO * 1024 * 1024;
+    const tropLourde = f.size > seuilMo * 1024 * 1024;
     if (!estHeic && !tropLourde && type.startsWith('image/')) return { ok: true, fichier: f };
     try {
       return { ok: true, fichier: await versJpeg(f, f.name) };
@@ -1695,9 +1698,19 @@
         if (errIns) throw errIns;
         artiste = nouveau;
       }
+      // 30/10/2026 : un fichier qui ne part pas ne fait plus perdre le texte. Chaque envoi a un délai,
+      // un échec est noté (échecs) et tracé côté serveur, et le dossier est enregistré avec ce qui est passé.
+      const echecs = [];
+      const fichiersPartis = { photoArtiste: false, photos: [], videos: [] };
       let photoArtistePath = artiste.photo_artiste_path || null;
       if (photoArtisteFichier) {
-        photoArtistePath = await uploadFichier(photoArtisteFichier, `${artiste.token_depot}/artiste/${Date.now()}-${nettoyerNom(photoArtisteFichier.name)}`);
+        try {
+          photoArtistePath = await uploadFichier(photoArtisteFichier, `${artiste.token_depot}/artiste/${Date.now()}-${nettoyerNom(photoArtisteFichier.name)}`);
+          fichiersPartis.photoArtiste = true;
+        } catch (e) {
+          echecs.push({ quoi: 'ta photo', nom: photoArtisteFichier.name });
+          tracerEchec(artiste.token_depot, 'photo-artiste', photoArtisteFichier, e);
+        }
       }
       avancerProgress(barre, 10);
 
@@ -1707,8 +1720,14 @@
       for (let i = 0; i < total; i++) {
         const p = photosHD[i];
         const path = `${artiste.token_depot}/photos-hd/${Date.now()}-${i}-${nettoyerNom(p.fichier.name)}`;
-        const chemin = await uploadFichier(p.fichier, path);
-        photosHDPaths.push(chemin);
+        try {
+          const chemin = await uploadFichier(p.fichier, path);
+          photosHDPaths.push(chemin);
+          fichiersPartis.photos.push(i);
+        } catch (e) {
+          echecs.push({ quoi: 'une photo', nom: p.fichier.name });
+          tracerEchec(artiste.token_depot, 'photo-hd', p.fichier, e);
+        }
         avancerProgress(barre, 10 + Math.round(((i + 1) / Math.max(total,1)) * 50));
       }
       avancerProgress(barre, 60);
@@ -1719,11 +1738,22 @@
       for (let i = 0; i < totalVideos; i++) {
         const v = videos[i];
         const path = `${artiste.token_depot}/videos/${Date.now()}-${i}-${nettoyerNom(v.fichier.name)}`;
-        const chemin = await uploadFichier(v.fichier, path);
-        videosPaths.push(chemin);
+        try {
+          const chemin = await uploadFichier(v.fichier, path, DELAI_VIDEO_MS);
+          videosPaths.push(chemin);
+          fichiersPartis.videos.push(i);
+        } catch (e) {
+          echecs.push({ quoi: 'une vidéo', nom: v.fichier.name });
+          tracerEchec(artiste.token_depot, 'video', v.fichier, e);
+        }
         avancerProgress(barre, 60 + Math.round(((i + 1) / Math.max(totalVideos,1)) * 15));
       }
       avancerProgress(barre, 75);
+
+      // Rien d'utile n'a pu partir (pas de texte, et toutes les photos ont échoué) : on le dit, sans rien enregistrer.
+      if (!bio && photosHDPaths.length === 0 && echecs.length > 0) {
+        throw new MessageSimple(messageEchec(echecs));
+      }
 
       const champs = ['bio','titre_set','genre','courriel','cellulaire','instagram','instagram_perso','facebook','facebook_perso','tiktok','tiktok_perso','site_web','bandsintown_url','spotify_url','bandcamp_url','soundcloud_url','youtube_url','vimeo_url','setlist','rider_technique','besoins_hospitality','credit_photo'];
       // Captation audio+vidéo (case à cocher → boolean en BD)
@@ -1815,17 +1845,38 @@
       const messageSucces = modeCandidature
         ? `Merci ${artiste.nom_artiste}. Ta candidature est arrivée chez Cédric et Joshué. Ils te reviennent rapidement avec une date proposée. Garde précieusement ce lien personnel pour ajuster ton dossier plus tard : <code style="display:block;margin-top:10px;background:rgba(247,209,53,0.1);padding:8px;border-radius:6px;font-size:12px;word-break:break-all">${window.location.origin}/?t=${artiste.token_depot}</code>${bandsinBlocSuggestion}`
         : `Merci ${artiste.nom_artiste}. Cédric te reviendra rapidement. Tu peux fermer cette fenêtre, ou revenir plus tard pour ajouter d'autres photos ou ajuster ton rider.${bandsinBlocSuggestion}`;
-      afficherMessage('succes', '✓ Tout est arrivé à La Brassée', messageSucces);
-      bouton.textContent = 'Envoyé ✓';
-      photosHD.length = 0;
-      renderPhotos();
-      videos.length = 0;
-      renderVideos();
-      photoArtisteFichier = null;
-      apercuArtiste.style.display = 'none';
+      if (echecs.length === 0) {
+        afficherMessage('succes', '✓ Tout est arrivé à La Brassée', messageSucces);
+        bouton.textContent = 'Envoyé ✓';
+        photosHD.length = 0;
+        renderPhotos();
+        videos.length = 0;
+        renderVideos();
+        photoArtisteFichier = null;
+        apercuArtiste.style.display = 'none';
+      } else {
+        // Le texte est arrivé, pas tous les fichiers. On garde à l'écran ce qui n'est pas parti, on retient
+        // ce qui est passé (pour qu'un nouvel envoi ne l'efface pas), et on dit quoi faire en mots simples.
+        fichiersPartis.photos.forEach((i) => { const c = photosHDPaths.find((x) => x.includes(`-${i}-`)); if (c) photosExistantes.push({ path: c, url: urlPhoto(c), keep: true }); });
+        fichiersPartis.videos.forEach((i) => { const c = videosPaths.find((x) => x.includes(`-${i}-`)); if (c) videosExistantes.push({ path: c, url: urlPhoto(c), keep: true, nom: c.split('/').pop() }); });
+        photosHD.splice(0, photosHD.length, ...photosHD.filter((_, i) => !fichiersPartis.photos.includes(i)));
+        videos.splice(0, videos.length, ...videos.filter((_, i) => !fichiersPartis.videos.includes(i)));
+        if (fichiersPartis.photoArtiste) { artiste.photo_artiste_path = photoArtistePath; photoArtisteFichier = null; }
+        renderPhotos(); renderVideos(); renderPhotosExistantes(); renderVideosExistantes();
+        const lien = artiste.token_depot ? `${window.location.origin}/?t=${artiste.token_depot}` : '';
+        afficherMessage('succes', '✓ Ton texte est bien arrivé', messageEchec(echecs, true) + (lien ? ` Ton lien personnel pour y revenir : <code style="display:block;margin-top:10px;background:rgba(247,209,53,0.1);padding:8px;border-radius:6px;font-size:12px;word-break:break-all">${lien}</code>` : ''));
+        bouton.disabled = false;
+        bouton.textContent = 'Renvoyer ce qui manque';
+        progress.classList.remove('actif');
+        barre.style.width = '0%';
+      }
     } catch (err) {
       console.error(err);
-      afficherMessage('erreur', 'Un problème est survenu', `${err.message || err}. Réessaye dans un instant, ou écris à contact@labrassee.cafe.`);
+      if (err instanceof MessageSimple) {
+        afficherMessage('erreur', "Ta photo n'a pas pu partir", err.message);
+      } else {
+        afficherMessage('erreur', 'Un problème est survenu', `${motsSimples(err)} Réessaye dans un instant, ou écris à contact@labrassee.cafe.`);
+      }
       bouton.disabled = false;
       bouton.textContent = "Réessayer l'envoi";
       progress.classList.remove('actif');
@@ -1837,11 +1888,54 @@
     return nom.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9.-]/g, '_').toLowerCase();
   }
 
-  async function uploadFichier(fichier, path) {
+  // 30/10/2026 : un envoi de fichier qui cale n'attend plus sans fin. Au bout du délai on abandonne CE fichier,
+  // le texte du dossier part quand même, et l'échec est tracé côté serveur (voir tracerEchec).
+  const DELAI_FICHIER_MS = 90 * 1000;
+  const DELAI_VIDEO_MS = 5 * 60 * 1000;
+
+  class MessageSimple extends Error {}
+
+  function avecDelai(promesse, ms) {
+    let minuterie;
+    const limite = new Promise((_, ko) => { minuterie = setTimeout(() => ko(new Error('delai')), ms); });
+    return Promise.race([promesse, limite]).finally(() => clearTimeout(minuterie));
+  }
+
+  async function uploadFichier(fichier, path, delaiMs = DELAI_FICHIER_MS) {
     if (fichier.size === 0) throw new Error('Ce fichier est vide (0 octet) — il n\'a probablement pas fini de se télécharger. Sélectionne-le à nouveau.');
-    const { data, error } = await supa.storage.from('artistes-scene-epk').upload(path, fichier, { cacheControl: '3600', upsert: false });
+    // Android peut rendre un fichier illisible entre le choix et l'envoi : on le lit en mémoire d'abord.
+    let corps = fichier;
+    try { corps = new Blob([await fichier.arrayBuffer()], { type: fichier.type }); } catch (e) { throw new Error('lecture'); }
+    const { data, error } = await avecDelai(supa.storage.from('artistes-scene-epk').upload(path, corps, { cacheControl: '3600', upsert: false, contentType: fichier.type || undefined }), delaiMs);
     if (error) throw error;
     return data.path;
+  }
+
+  // Les mots de l'artiste : jamais « Failed to fetch ».
+  function motsSimples(err) {
+    const m = String((err && err.message) || err || '');
+    if (m === 'delai' || /fetch|network|load failed/i.test(m)) return "Ta connexion a coupé pendant l'envoi.";
+    if (m === 'lecture') return "Ton téléphone n'arrive pas à relire le fichier choisi.";
+    return m;
+  }
+
+  function messageEchec(echecs, textePasse) {
+    const liste = echecs.map((e) => `${e.quoi} (${escaperHtml(e.nom)})`).join(', ');
+    const debut = textePasse ? 'Tout ton texte est enregistré. ' : '';
+    return `${debut}Par contre, ${liste} n'est pas parti : la connexion a coupé ou le fichier est trop lourd pour ton réseau. `
+      + `Essaie avec le wifi, ou avec une photo plus légère (une capture d'écran de la photo marche aussi), puis touche « Renvoyer ce qui manque ». `
+      + `Si ça ne passe toujours pas, écris-nous à contact@labrassee.cafe avec la photo : on s'en occupe.`;
+  }
+
+  // Trace côté serveur, au mieux : un petit fichier JSON dans le dossier de l'artiste (sans courriel ni nom).
+  // Sans cette trace, un envoi qui échoue chez l'artiste ne laisse rien nulle part (le 29/10 : 5 essais invisibles).
+  async function tracerEchec(token, etape, fichier, err) {
+    try {
+      const trace = { le: new Date().toISOString(), etape, fichier_octets: fichier && fichier.size, fichier_type: fichier && fichier.type,
+        erreur: String((err && err.message) || err).slice(0, 200), reseau: (navigator.connection && navigator.connection.effectiveType) || null,
+        navigateur: navigator.userAgent.slice(0, 160) };
+      await avecDelai(supa.storage.from('artistes-scene-epk').upload(`${token}/echecs/${Date.now()}-${etape}.json`, new Blob([JSON.stringify(trace)], { type: 'application/json' }), { upsert: false, contentType: 'application/json' }), 20000);
+    } catch (e) { /* une trace qui ne part pas ne doit jamais gêner l'artiste */ }
   }
 
   function avancerProgress(barre, pourcent) { barre.style.width = pourcent + '%'; }
