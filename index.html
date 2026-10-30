@@ -1921,8 +1921,9 @@
 
   function messageEchec(echecs, textePasse) {
     const liste = echecs.map((e) => `${e.quoi} (${escaperHtml(e.nom)})`).join(', ');
-    const debut = textePasse ? 'Tout ton texte est enregistré. ' : '';
-    return `${debut}Par contre, ${liste} n'est pas parti : la connexion a coupé ou le fichier est trop lourd pour ton réseau. `
+    const verbe = echecs.length > 1 ? "n'ont pas pu partir" : "n'a pas pu partir";
+    const sujet = textePasse ? `Tout ton texte est enregistré. Par contre, ${liste}` : liste.charAt(0).toUpperCase() + liste.slice(1);
+    return `${sujet} ${verbe} : la connexion a coupé ou le fichier est trop lourd pour ton réseau. `
       + `Essaie avec le wifi, ou avec une photo plus légère (une capture d'écran de la photo marche aussi), puis touche « Renvoyer ce qui manque ». `
       + `Si ça ne passe toujours pas, écris-nous à contact@labrassee.cafe avec la photo : on s'en occupe.`;
   }
