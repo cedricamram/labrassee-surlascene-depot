@@ -450,7 +450,7 @@
 
     <fieldset id="bloc-candidature" style="display:none">
       <legend>Première candidature · choisis ta date</legend>
-      <p style="color:rgba(255,255,255,0.75);font-size:14px;margin:0 0 14px">Cédric et Joshué reçoivent ta candidature avec une date ferme proposée par toi. Plus le dossier est complet et la date pertinente, plus tu mets toutes les chances de ton côté.</p>
+      <p style="color:rgba(255,255,255,0.75);font-size:14px;margin:0 0 14px">Cédric reçoit ta candidature avec une date ferme proposée par toi. Plus le dossier est complet et la date pertinente, plus tu mets toutes les chances de ton côté.</p>
 
       <label for="nom_artiste_cand">Nom artiste / groupe *</label>
       <input type="text" id="nom_artiste_cand" placeholder="Ex : Trio Choro de Quintal" required>
@@ -570,7 +570,7 @@
     </fieldset>
 
     <!-- ═══ BANDSINTOWN — BANNIÈRE VISIBILITÉ ═══ -->
-    <fieldset style="border-color:rgba(247,209,53,0.5);background:linear-gradient(135deg,rgba(247,209,53,0.08),rgba(247,209,53,0.03))">
+    <fieldset style="display:none;border-color:rgba(247,209,53,0.5);background:linear-gradient(135deg,rgba(247,209,53,0.08),rgba(247,209,53,0.03))"><!-- Bandsintown retiré 31/10/2026 (Cédric, via Dionysos 09h11) : promesse non tenue, aucune soirée publiée -->
       <legend style="color:#f7d135;font-size:1rem">📍 Profil Bandsintown — booste ta visibilité gratuitement</legend>
       <div style="display:flex;flex-direction:column;gap:16px">
         <p style="font-size:15px;line-height:1.65;color:var(--blanc-doux)">
@@ -687,7 +687,7 @@
     <fieldset>
       <legend>Vidéos pour la comm <span class="opt">(optionnel mais super utile)</span></legend>
       <div class="info-batch">
-        Idéalement <strong>1 vidéo de présentation</strong> (60-90 s qui résume ton univers) OU <strong>1 à 3 extraits live choisis</strong> (les passages qui te rendent le mieux à la scène). Elles serviront pour TikTok, Reels Instagram, Stories et la TV Cuisine.
+        Idéalement <strong>1 vidéo de présentation</strong> (60-90 s qui résume ton univers) OU <strong>1 à 3 extraits live choisis</strong> (les passages qui te rendent le mieux à la scène). Elles serviront pour les Reels Instagram, les Stories et la TV Cuisine.
         <br><br>
         Format <strong>MP4</strong> ou <strong>MOV</strong>, <strong>max 40 Mo par fichier</strong>. Si ton fichier est trop gros, exporte-le en 1080p depuis ton téléphone, ou compresse-le avec <a href="https://handbrake.fr/" target="_blank" rel="noopener" style="color:var(--jaune)">HandBrake</a> (gratuit, Mac/PC).
         <br><br>
@@ -730,7 +730,7 @@
         <input type="checkbox" id="captation_audio_video" style="margin-top:3px;width:18px;height:18px;accent-color:var(--jaune);cursor:pointer">
         <span style="flex:1;line-height:1.5">
           <span style="font-weight:600;color:var(--jaune)">🎥 Captation audio + vidéo stéréo sur clé USB</span>
-          <span style="display:block;font-size:13px;color:var(--blanc-doux);margin-top:4px">Tu repars avec l'enregistrement de ton show (audio stéréo via les Røde NT5 + vidéo caméra plafond Marshall CV380-CS) sur clé USB en fin de soirée. <strong style="color:var(--jaune)">40 $</strong>, facturé séparément. Coche pour qu'on prépare la prise.</span>
+          <span style="display:block;font-size:13px;color:var(--blanc-doux);margin-top:4px">Tu repars avec l'enregistrement de ton show (audio stéréo depuis notre console + vidéo caméra plafond Marshall CV380-CS) sur clé USB en fin de soirée. <strong style="color:var(--jaune)">40 $</strong>, facturé séparément. Coche pour qu'on prépare la prise.</span>
         </span>
       </label>
     </fieldset>
@@ -744,7 +744,7 @@
           <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">🎤 <strong style="color:var(--jaune)">Soundcheck dès 18 h 30</strong> · début show 19 h 30 · format 2 sets de 45 min + pause 15 min</li>
           <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">💸 <strong style="color:var(--jaune)">Aucune billetterie</strong> · public en participation libre (chapeau, dons en main propre)</li>
           <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">💵 <strong style="color:var(--jaune)">Majoration 10 % sur les factures</strong> pendant le show · <strong style="color:var(--jaune)">100 % reversée aux artistes</strong> (La Brassée ne prélève rien)</li>
-          <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">🍻 <strong style="color:var(--jaune)">30 $ de conso offerte minimum</strong> par artiste · plafond 120 $/soirée</li>
+          <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">🍻 <strong style="color:var(--jaune)">30 $ de consommations offertes</strong> par artiste · plafond 120 $/soirée</li>
           <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">🎥 <strong style="color:var(--jaune)">Captation audio + vidéo stéréo USB disponible</strong> · 40 $/prestation (option)</li>
           <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">📅 Un artiste peut revenir <strong style="color:var(--jaune)">maximum 3 fois par année calendrier</strong> (on aime faire tourner)</li>
           <li style="padding:6px 0;border-bottom:1px solid var(--glass-border)">📷 Droit d'image pour la communication du show (et 6 mois après), nom de l'artiste systématiquement mentionné</li>
@@ -1832,7 +1832,7 @@
 
       avancerProgress(barre, 100);
 
-      const bandsinBlocSuggestion = (update.spotify_url && !update.bandsintown_url)
+      const bandsinBlocSuggestion = (false && update.spotify_url && !update.bandsintown_url)
         ? `<div style="margin-top:18px;background:rgba(247,209,53,0.1);border:1px solid rgba(247,209,53,0.35);border-radius:10px;padding:14px 18px;display:flex;gap:14px;align-items:flex-start">
             <span style="font-size:20px;flex-shrink:0">📍</span>
             <div>
@@ -1843,7 +1843,7 @@
         : '';
 
       const messageSucces = modeCandidature
-        ? `Merci ${artiste.nom_artiste}. Ta candidature est arrivée chez Cédric et Joshué. Ils te reviennent rapidement avec une date proposée. Garde précieusement ce lien personnel pour ajuster ton dossier plus tard : <code style="display:block;margin-top:10px;background:rgba(247,209,53,0.1);padding:8px;border-radius:6px;font-size:12px;word-break:break-all">${window.location.origin}/?t=${artiste.token_depot}</code>${bandsinBlocSuggestion}`
+        ? `Merci ${artiste.nom_artiste}. Ta candidature est arrivée chez Cédric. On te revient rapidement avec une date proposée. Garde précieusement ce lien personnel pour ajuster ton dossier plus tard : <code style="display:block;margin-top:10px;background:rgba(247,209,53,0.1);padding:8px;border-radius:6px;font-size:12px;word-break:break-all">${window.location.origin}/?t=${artiste.token_depot}</code>${bandsinBlocSuggestion}`
         : `Merci ${artiste.nom_artiste}. Cédric te reviendra rapidement. Tu peux fermer cette fenêtre, ou revenir plus tard pour ajouter d'autres photos ou ajuster ton rider.${bandsinBlocSuggestion}`;
       if (echecs.length === 0) {
         afficherMessage('succes', '✓ Tout est arrivé à La Brassée', messageSucces);
