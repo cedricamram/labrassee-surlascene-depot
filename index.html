@@ -460,7 +460,7 @@
       <select id="date_proposee_select" required style="width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#f1efe4;font-size:16px;font-family:Lato,sans-serif">
         <option value="" disabled selected>— Chargement des dates libres —</option>
       </select>
-      <p id="date_principale_hint" style="color:rgba(255,255,255,0.55);font-size:12px;margin:6px 0 0">Préavis minimum 7 jours. Jours ouverts : lun · mar · jeu · ven · sam (sauf juillet-août où c'est ven · sam seulement).</p>
+      <p id="date_principale_hint" style="color:rgba(255,255,255,0.55);font-size:12px;margin:6px 0 0">Préavis minimum 7 jours. Jours ouverts : mar · jeu · ven · sam (sauf juillet-août où c'est ven · sam seulement).</p>
 
       <label for="date_proposee_select_2" style="margin-top:14px">Date secondaire que tu proposes *
         <span class="opt">(au cas où la principale ne marche pas pour Cédric — obligatoire, ça évite les allers-retours)</span></label>
@@ -1145,7 +1145,7 @@
         document.getElementById('app-charge').style.display = 'block';
         document.getElementById('accueil-titre').textContent = 'Bienvenue';
         document.getElementById('accueil-p1').innerHTML = "<strong style=\"color:var(--jaune)\">Tu veux te faire voir sur notre scène ?</strong> Remplis ce formulaire — c'est ton premier filtre. Plus le dossier est rodé, plus on a envie de te programmer.";
-        document.getElementById('accueil-p2').textContent = "Cédric et Joshué te reviennent rapidement avec une date proposée.";
+        document.getElementById('accueil-p2').textContent = "Cédric te revient rapidement avec une date proposée.";
         // Pas de bloc date show : on le cache
         const dates = document.querySelector('.accueil .dates');
         if (dates) dates.style.display = 'none';
