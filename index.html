@@ -857,6 +857,17 @@
   const MOIS_LONG_DEPOT = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
   const IMPRO_DEBUT_DEPOT = '2026-05-25';
   const IMPRO_FIN_DEPOT = '2026-08-24';
+  // Cédric, 31/10/2026 (via Dionysos 09h14) : seul le samedi 26/12 reste proposé aux artistes dans les fêtes.
+  const FETES_FERMEES_DEPOT = new Set(['2026-12-24','2026-12-25','2026-12-31','2027-01-01']);
+  // Permanents de 2027 (non inscrits en base après le 22/12) : bluegrass le 3e mardi, jam manouche le 4e mardi.
+  // KAOS et la poésie : non confirmés, mardis NON bloqués pour l'instant.
+  function estMardiPermanent2027(iso) {
+    if (iso < '2026-12-23') return false;
+    const d = new Date(iso + 'T00:00:00');
+    if (d.getDay() !== 2) return false;
+    const rang = Math.ceil(d.getDate() / 7);
+    return rang === 3 || rang === 4;
+  }
 
   function todayMtlISO() {
     const f = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -917,7 +928,7 @@
       const joursOuverts = (moisHum === 7 || moisHum === 8) ? new Set([5, 6]) : new Set([1, 2, 4, 5, 6]);
       // Saison Impro lundis 25 mai → 24 août : exclus (bookés permanent)
       const isImpro = dow === 1 && cur >= IMPRO_DEBUT_DEPOT && cur <= IMPRO_FIN_DEPOT;
-      if (joursOuverts.has(dow) && !isImpro && !bookes.has(cur)) {
+      if (joursOuverts.has(dow) && !isImpro && !bookes.has(cur) && !FETES_FERMEES_DEPOT.has(cur) && !estMardiPermanent2027(cur)) {
         out.push(cur);
       }
       cur = isoAddDays(cur, 1);
