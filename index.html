@@ -864,6 +864,8 @@
   function estMardiPermanent2027(iso) {
     if (iso < '2026-12-23') return false;
     const d = new Date(iso + 'T00:00:00');
+    // Lundis : l'impro continue en 2027 (Cédric 31/10/2026 09h16 : « pour l'instant ils n'ont pas exprimé le souhait d'arreter »).
+    if (d.getDay() === 1) return true;
     if (d.getDay() !== 2) return false;
     const rang = Math.ceil(d.getDate() / 7);
     return rang === 3 || rang === 4;
