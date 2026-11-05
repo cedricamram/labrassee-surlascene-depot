@@ -1238,8 +1238,12 @@
       // ouvrait son lien et lisait « DATE DU SHOW : À CONFIRMER » sans pouvoir rien
       // proposer — alors que le courriel qu'on lui envoie promet le contraire
       // (« tu choisis simplement ta date à ton retour »). La promesse tient enfin.
+      // 04/11/2026 : aligner sur le plafond SQL (2 planifie futurs max, pas 0 avenir total).
+      // Un artiste avec un show confirmé peut toujours proposer une date — il ne peut pas si
+      // il a déjà 2 planifie en attente. concertsAvenir inclut confirme : trop restrictif.
+      const nbPlanifieAvenir = concertsAvenir.filter(c => c.statut === 'planifie').length;
       const peutReserver = !modeCandidature &&
-        (artiste.permanence === true || concertsAvenir.length === 0);
+        (artiste.permanence === true || nbPlanifieAvenir < 2);
       if (peutReserver) {
         const blocPerm = document.getElementById('bloc-permanent-automne');
         if (blocPerm) {
