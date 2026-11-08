@@ -491,8 +491,8 @@
     </fieldset>
 
     <fieldset id="bloc-permanent-automne" style="display:none;border-color:rgba(247,209,53,0.5);background:linear-gradient(135deg,rgba(247,209,53,0.10),rgba(247,209,53,0.03))">
-      <legend id="perm_legend">📅 Réserve tes dates d'automne</legend>
-      <p id="perm_intro" style="color:rgba(255,255,255,0.8);font-size:14px;margin:0 0 14px">En tant qu'habitué·e de la scène, l'automne (septembre à décembre) t'est réservé en priorité — il n'est pas ouvert au grand public. Choisis une soirée libre et réserve-la, puis recommence pour chacune de tes dates. Cédric confirme ensuite chaque réservation.</p>
+      <legend id="perm_legend">📅 Réserve tes dates des 6 prochains mois</legend>
+      <p id="perm_intro" style="color:rgba(255,255,255,0.8);font-size:14px;margin:0 0 14px">En tant qu'artiste permanent·e de la scène, tu peux réserver tes soirées jusqu'à six mois à l'avance, sans attendre l'ouverture au grand public. Choisis une soirée libre et réserve-la, puis recommence pour chacune de tes dates. Cédric confirme ensuite chaque réservation.</p>
 
       <label for="perm_date_select">Soirée libre</label>
       <select id="perm_date_select" style="width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#f1efe4;font-size:16px;font-family:Lato,sans-serif">
@@ -505,7 +505,7 @@
       <button type="button" class="envoyer" id="perm_bouton_reserver" style="margin-top:16px">Réserver cette date</button>
 
       <div id="perm_reservees_wrap" style="display:none;margin-top:18px">
-        <p id="perm_reservees_titre" style="color:var(--jaune);font-weight:500;font-size:14px;margin:0 0 8px">Tes dates d'automne réservées</p>
+        <p id="perm_reservees_titre" style="color:var(--jaune);font-weight:500;font-size:14px;margin:0 0 8px">Tes dates réservées</p>
         <ul id="perm_reservees_liste" style="list-style:none;padding:0;margin:0;font-size:14px;color:rgba(255,255,255,0.85)"></ul>
       </div>
 
@@ -984,16 +984,33 @@
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Réservation des dates d'automne — réservée aux artistes PERMANENTS.
-  // L'automne (sept→déc) est fermé au public ; les permanents y réservent
-  // leurs soirées via leur lien perso (?t=). Insère un concert 'planifie'
-  // (aucune diffusion publique) lié à l'artiste, via RPC reserver_date_scene.
+  // Réservation des PERMANENTS — fenêtre glissante de 6 mois.
+  // Cédric, 07/11/2026 22h21 : « permanents ca veut dire qu'ils peuvent
+  // reserver leurs dates pour les 6 prochains mois c'est comme un statu
+  // privilégié ». Remplace l'ancienne fenêtre figée sept→déc 2026. Les
+  // permanents réservent via leur lien perso (?t=) ; insère un concert
+  // 'planifie' lié à l'artiste, via RPC reserver_date_scene (mêmes bornes).
   // ─────────────────────────────────────────────────────────────────────────
-  const AUTOMNE_DEBUT = '2026-09-01';
-  const AUTOMNE_FIN = '2026-12-31';
+  const PERMANENTS_MOIS = 6;
+
+  function isoAddMonths(iso, mois) {
+    // Même arithmétique que Postgres (date + interval 'N months') : jour borné
+    // au dernier jour du mois d'arrivée.
+    const [a, m, j] = iso.split('-').map(Number);
+    const total = (m - 1) + mois;
+    const an = a + Math.floor(total / 12), mo = total % 12;
+    const dernier = new Date(Date.UTC(an, mo + 1, 0)).getUTCDate();
+    return `${an}-${String(mo + 1).padStart(2, '0')}-${String(Math.min(j, dernier)).padStart(2, '0')}`;
+  }
+
+  function fenetrePermanents() {
+    const today = todayMtlISO();
+    return { debut: today, fin: isoAddMonths(today, PERMANENTS_MOIS) };
+  }
 
   async function fetchConcertsAutomne() {
-    const url = `${SUPABASE_URL}/rest/v1/concerts?select=date_show,statut&date_show=gte.${AUTOMNE_DEBUT}&date_show=lte.${AUTOMNE_FIN}&statut=in.(planifie,confirme)&limit=500`;
+    const { debut, fin } = fenetrePermanents();
+    const url = `${SUPABASE_URL}/rest/v1/concerts?select=date_show,statut&date_show=gte.${debut}&date_show=lte.${fin}&statut=in.(planifie,confirme)&limit=500`;
     const res = await fetch(url, { headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY } });
     if (!res.ok) throw new Error('Supabase HTTP ' + res.status);
     const rows = await res.json();
@@ -1003,14 +1020,14 @@
   }
 
   function genererDatesAutomnePermanent(bookes) {
-    // Soirs ouverts lun/mar/jeu/ven/sam de l'automne, non bookés, à partir d'aujourd'hui.
-    const today = todayMtlISO();
-    let cur = AUTOMNE_DEBUT < today ? today : AUTOMNE_DEBUT;
+    // Soirs ouverts lun/mar/jeu/ven/sam des 6 prochains mois, non bookés, fêtes fermées exclues.
+    const { debut, fin } = fenetrePermanents();
+    let cur = debut;
     const out = [];
-    while (cur <= AUTOMNE_FIN) {
+    while (cur <= fin) {
       const d = new Date(cur + 'T00:00:00');
       const dow = d.getDay(); // 0=dim..6=sam ; mer(3) et dim(0) fermés
-      if ([1, 2, 4, 5, 6].includes(dow) && !bookes.has(cur)) out.push(cur);
+      if ([1, 2, 4, 5, 6].includes(dow) && !bookes.has(cur) && !FETES_FERMEES_DEPOT.has(cur)) out.push(cur);
       cur = isoAddDays(cur, 1);
     }
     return out;
@@ -1024,7 +1041,7 @@
     catch (e) { sel.innerHTML = '<option value="" disabled selected>⚠️ Impossible de charger — recharge la page</option>'; return; }
     const libres = genererDatesAutomnePermanent(bookes);
     if (libres.length === 0) {
-      sel.innerHTML = '<option value="" disabled selected>Plus aucune soirée libre cet automne</option>';
+      sel.innerHTML = '<option value="" disabled selected>Plus aucune soirée libre dans les 6 prochains mois</option>';
       return;
     }
     const parMois = new Map();
@@ -1245,7 +1262,7 @@
       }
 
       // Bloc « réserver une date » — deux publics, deux régimes (2026-07-27).
-      //  • PERMANENT : l'automne lui est réservé (comportement d'origine).
+      //  • PERMANENT : il réserve sur les 6 prochains mois (Cédric, 07/11/2026).
       //  • ARTISTE CONNU SANS DATE À VENIR : les soirs libres ordinaires.
       // Avant, seuls les permanents voyaient ce bloc. Un habitué revenu sans date
       // ouvrait son lien et lisait « DATE DU SHOW : À CONFIRMER » sans pouvoir rien
