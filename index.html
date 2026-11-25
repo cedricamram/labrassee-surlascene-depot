@@ -783,7 +783,7 @@
   <div class="logo-svg-footer" id="logo-footer"></div>
   <div class="nom-marque">LA BRASSÉE</div>
   <div>Café · scène · galerie · Rosemont, Montréal</div>
-  <div style="margin-top:8px">Une question ? <a href="mailto:contact@labrassee.cafe">contact@labrassee.cafe</a></div>
+  <div style="margin-top:8px">Une question ? <a href="mailto:surlascene@labrassee.cafe">surlascene@labrassee.cafe</a></div>
 </footer>
 
 </div>
@@ -791,7 +791,7 @@
 <div id="app-erreur-token" class="ecran-token-invalide" style="display:none">
   <h2>Ce lien n'est pas valide</h2>
   <p>Ton lien semble incomplet ou expiré. Écris à Cédric pour qu'il t'en renvoie un.</p>
-  <a href="mailto:contact@labrassee.cafe">contact@labrassee.cafe</a>
+  <a href="mailto:surlascene@labrassee.cafe">surlascene@labrassee.cafe</a>
 </div>
 
 <div id="app-porte" class="ecran-porte" style="display:none">
@@ -813,6 +813,7 @@
     <strong>C'est parti.</strong> Si ce courriel est chez nous, tu recevras ton lien dans la minute.<br>
     Garde-le précieusement : c'est ta porte d'entrée, toujours la même.
   </div>
+  <div class="porte-erreur" id="porte-erreur" role="alert" style="display:none;margin-top:12px;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,120,90,.5);background:rgba(255,120,90,.08)"></div>
 </div>
 
 <script>
@@ -879,8 +880,10 @@
   }
 
   function isoAddDays(iso, days) {
-    const d = new Date(iso + 'T00:00:00');
-    d.setDate(d.getDate() + days);
+    // 25/11 (client mystère) : minuit LOCAL lu ensuite en UTC. À l'est de l'UTC (Paris, Londres, Casablanca…),
+    // « +1 jour » redonnait le même jour et la boucle des dates ne finissait jamais : page figée. Tout en UTC.
+    const d = new Date(iso + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() + days);
     return d.toISOString().slice(0, 10);
   }
 
@@ -945,7 +948,7 @@
     const selS = document.getElementById('date_proposee_select_2');
     if (!selP || !selS) return;
     if (libres.length === 0) {
-      selP.innerHTML = '<option value="" disabled selected>Aucune date libre dans les 4 prochains mois — écris à contact@labrassee.cafe</option>';
+      selP.innerHTML = '<option value="" disabled selected>Aucune date libre dans les 4 prochains mois — écris à surlascene@labrassee.cafe</option>';
       selS.innerHTML = '<option value="">— Aucune date secondaire dispo —</option>';
       return;
     }
@@ -1077,7 +1080,7 @@
     }
     const libres = genererDatesLibres(bookes);
     if (libres.length === 0) {
-      sel.innerHTML = '<option value="" disabled selected>Aucune soirée libre dans les 4 prochains mois — écris à contact@labrassee.cafe</option>';
+      sel.innerHTML = '<option value="" disabled selected>Aucune soirée libre dans les 4 prochains mois — écris à surlascene@labrassee.cafe</option>';
       return;
     }
     const parMois = new Map();
@@ -1142,7 +1145,7 @@
       console.error('Réservation automne échouée :', err);
       const msg = ((err && err.message) || '').includes('déjà réservée')
         ? "Cette soirée vient d'être prise par un autre habitué. Choisis-en une autre — la liste est à jour."
-        : `${(err && err.message) || err}. Réessaye, ou écris à contact@labrassee.cafe.`;
+        : `${(err && err.message) || err}. Réessaye, ou écris à surlascene@labrassee.cafe.`;
       afficherMessage('erreur', 'Réservation impossible', msg);
       await rafraichirSelectReservation();
     } finally {
@@ -1328,7 +1331,7 @@
       if (artiste.signature_acceptee) document.getElementById('signature_check').checked = true;
     } catch (err) {
       console.error('Erreur init():', err);
-      chargement.innerHTML = '<div style="color:#ff6b6b;padding:24px;text-align:center;font-family:Lato,sans-serif;max-width:500px"><div style="font-family:Oswald,sans-serif;font-size:14px;letter-spacing:2px;text-transform:uppercase;color:#f7d135;margin-bottom:12px">Une erreur est survenue</div>' + (err.message || err) + '<br><br>Vérifie ta connexion et recharge la page. Si le problème persiste, écris à <a href="mailto:contact@labrassee.cafe" style="color:#f7d135">contact@labrassee.cafe</a>.</div>';
+      chargement.innerHTML = '<div style="color:#ff6b6b;padding:24px;text-align:center;font-family:Lato,sans-serif;max-width:500px"><div style="font-family:Oswald,sans-serif;font-size:14px;letter-spacing:2px;text-transform:uppercase;color:#f7d135;margin-bottom:12px">Une erreur est survenue</div>' + (err.message || err) + '<br><br>Vérifie ta connexion et recharge la page. Si le problème persiste, écris à <a href="mailto:surlascene@labrassee.cafe" style="color:#f7d135">surlascene@labrassee.cafe</a>.</div>';
     }
   }
 
@@ -1907,7 +1910,7 @@
       if (err instanceof MessageSimple) {
         afficherMessage('erreur', "Ta photo n'a pas pu partir", err.message);
       } else {
-        afficherMessage('erreur', 'Un problème est survenu', `${motsSimples(err)} Réessaye dans un instant, ou écris à contact@labrassee.cafe.`);
+        afficherMessage('erreur', 'Un problème est survenu', `${motsSimples(err)} Réessaye dans un instant, ou écris à surlascene@labrassee.cafe.`);
       }
       bouton.disabled = false;
       bouton.textContent = "Réessayer l'envoi";
@@ -1957,7 +1960,7 @@
     const sujet = textePasse ? `Tout ton texte est enregistré. Par contre, ${liste}` : liste.charAt(0).toUpperCase() + liste.slice(1);
     return `${sujet} ${verbe} : la connexion a coupé ou le fichier est trop lourd pour ton réseau. `
       + `Essaie avec le wifi, ou avec une photo plus légère (une capture d'écran de la photo marche aussi), puis touche « Renvoyer ce qui manque ». `
-      + `Si ça ne passe toujours pas, écris-nous à contact@labrassee.cafe avec la photo : on s'en occupe.`;
+      + `Si ça ne passe toujours pas, écris-nous à surlascene@labrassee.cafe avec la photo : on s'en occupe.`;
   }
 
   // Trace côté serveur, au mieux : un petit fichier JSON dans le dossier de l'artiste (sans courriel ni nom).
@@ -1988,15 +1991,29 @@
     if (!courriel) return;
     btn.disabled = true;
     btn.textContent = 'Envoi…';
+    // 25/11 (client mystère) : l'adresse sans « www » renvoyait ailleurs (308), le navigateur refusait ce détour, et la
+    // page affichait quand même « C'est parti ». La porte répond { ok: true } que le courriel soit connu ou non (on ne
+    // révèle pas qui est chez nous) : « C'est parti » ne s'affiche donc que si la demande est vraiment arrivée.
+    let arrivee = false;
     try {
-      await fetch('https://labrassee.cafe/api/artiste-porte', {
+      const r = await fetch('https://www.labrassee.cafe/api/artiste-porte', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ courriel, plateforme: 'scene' }),
       });
-    } catch (e) { /* ignore — on affiche toujours la confirmation */ }
-    document.getElementById('porte-form').style.display = 'none';
-    document.getElementById('porte-confirm').style.display = 'block';
+      arrivee = r.ok;
+    } catch (e) { arrivee = false; }
+    if (arrivee) {
+      document.getElementById('porte-form').style.display = 'none';
+      document.getElementById('porte-confirm').style.display = 'block';
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Recevoir mon lien';
+      const e = document.getElementById('porte-erreur');
+      e.innerHTML = '<strong>La demande n’est pas partie.</strong> Réessaie dans un instant. Si ça bloque encore, écris-nous à '
+        + '<a href="mailto:surlascene@labrassee.cafe">surlascene@labrassee.cafe</a> : on te renvoie ton lien.';
+      e.style.display = 'block';
+    }
   }
 </script>
 
