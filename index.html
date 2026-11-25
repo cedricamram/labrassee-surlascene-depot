@@ -491,8 +491,8 @@
     </fieldset>
 
     <fieldset id="bloc-permanent-automne" style="display:none;border-color:rgba(247,209,53,0.5);background:linear-gradient(135deg,rgba(247,209,53,0.10),rgba(247,209,53,0.03))">
-      <legend id="perm_legend">📅 Réserve tes dates des 6 prochains mois</legend>
-      <p id="perm_intro" style="color:rgba(255,255,255,0.8);font-size:14px;margin:0 0 14px">En tant qu'artiste permanent·e de la scène, tu peux réserver tes soirées jusqu'à six mois à l'avance, sans attendre l'ouverture au grand public. Choisis une soirée libre et réserve-la, puis recommence pour chacune de tes dates. Cédric confirme ensuite chaque réservation.</p>
+      <legend id="perm_legend">📅 Réserve tes dates des 8 prochains mois</legend>
+      <p id="perm_intro" style="color:rgba(255,255,255,0.8);font-size:14px;margin:0 0 14px">En tant qu'artiste permanent·e de la scène, tu peux réserver tes soirées jusqu'à huit mois à l'avance, sans attendre l'ouverture au grand public. Choisis une soirée libre et réserve-la, puis recommence pour chacune de tes dates. Cédric confirme ensuite chaque réservation.</p>
 
       <label for="perm_date_select">Soirée libre</label>
       <select id="perm_date_select" style="width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#f1efe4;font-size:16px;font-family:Lato,sans-serif">
@@ -984,14 +984,16 @@
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Réservation des PERMANENTS — fenêtre glissante de 6 mois.
+  // Réservation des PERMANENTS — fenêtre glissante de 8 mois.
+  // Cédric, 24/11/2026 21h35 (session d'Héphaïstos), choix B : « on passe la fenêtre à 8 mois pour tous les
+  // habitués ». Avant : 6 mois (ci-dessous).
   // Cédric, 07/11/2026 22h21 : « permanents ca veut dire qu'ils peuvent
   // reserver leurs dates pour les 6 prochains mois c'est comme un statu
   // privilégié ». Remplace l'ancienne fenêtre figée sept→déc 2026. Les
   // permanents réservent via leur lien perso (?t=) ; insère un concert
   // 'planifie' lié à l'artiste, via RPC reserver_date_scene (mêmes bornes).
   // ─────────────────────────────────────────────────────────────────────────
-  const PERMANENTS_MOIS = 6;
+  const PERMANENTS_MOIS = 8;
 
   function isoAddMonths(iso, mois) {
     // Même arithmétique que Postgres (date + interval 'N months') : jour borné
@@ -1020,7 +1022,7 @@
   }
 
   function genererDatesAutomnePermanent(bookes) {
-    // Soirs ouverts lun/mar/jeu/ven/sam des 6 prochains mois, non bookés, fêtes fermées exclues.
+    // Soirs ouverts lun/mar/jeu/ven/sam des 8 prochains mois, non bookés, fêtes fermées exclues.
     const { debut, fin } = fenetrePermanents();
     let cur = debut;
     const out = [];
@@ -1041,7 +1043,7 @@
     catch (e) { sel.innerHTML = '<option value="" disabled selected>⚠️ Impossible de charger — recharge la page</option>'; return; }
     const libres = genererDatesAutomnePermanent(bookes);
     if (libres.length === 0) {
-      sel.innerHTML = '<option value="" disabled selected>Plus aucune soirée libre dans les 6 prochains mois</option>';
+      sel.innerHTML = '<option value="" disabled selected>Plus aucune soirée libre dans les 8 prochains mois</option>';
       return;
     }
     const parMois = new Map();
@@ -1262,7 +1264,7 @@
       }
 
       // Bloc « réserver une date » — deux publics, deux régimes (2026-07-27).
-      //  • PERMANENT : il réserve sur les 6 prochains mois (Cédric, 07/11/2026).
+      //  • PERMANENT : il réserve sur les 8 prochains mois (Cédric, 07/11/2026 ; 8 mois le 24/11/2026).
       //  • ARTISTE CONNU SANS DATE À VENIR : les soirs libres ordinaires.
       // Avant, seuls les permanents voyaient ce bloc. Un habitué revenu sans date
       // ouvrait son lien et lisait « DATE DU SHOW : À CONFIRMER » sans pouvoir rien
