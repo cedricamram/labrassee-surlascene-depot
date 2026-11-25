@@ -898,7 +898,7 @@
     return `${jourSem.charAt(0).toUpperCase() + jourSem.slice(1)} ${jour} ${MOIS_LONG_DEPOT[mois]} ${annee}`;
   }
 
-  const FIN_OUVERTURE = '2027-03-31';   // dates proposables jusqu'à fin mars (Cédric, 2026-09-28)
+  const FIN_OUVERTURE = '2027-07-31';   // dates proposables jusqu'à fin juillet (Cédric, 25/11/2026 10h23 : « ouvre jusque juillet ») ; la RPC reserver_date_scene a la même borne
   async function fetchConcertsBookes() {
     // Récupère toutes les dates où il y a déjà un concert planifié/confirmé
     const today = todayMtlISO();
@@ -916,7 +916,7 @@
   }
 
   function genererDatesLibres(bookes) {
-    // Génère les soirs ouverts dans la fenêtre [today+7j, today+120j]
+    // Génère les soirs ouverts dans la fenêtre [today+7j, max(today+120j, FIN_OUVERTURE)]
     // Ouverts par mois : juill-août = ven/sam (été), reste = lun/mar/jeu/ven/sam.
     // Sept-déc RÉOUVERT à tous le 2026-07-04 (go Cédric) : les permanents ont
     // réservé en priorité (juin), leurs dates sont bookées donc auto-exclues.
@@ -948,7 +948,7 @@
     const selS = document.getElementById('date_proposee_select_2');
     if (!selP || !selS) return;
     if (libres.length === 0) {
-      selP.innerHTML = '<option value="" disabled selected>Aucune date libre dans les 4 prochains mois — écris à surlascene@labrassee.cafe</option>';
+      selP.innerHTML = '<option value="" disabled selected>Aucune date libre d’ici la fin juillet — écris à surlascene@labrassee.cafe</option>';
       selS.innerHTML = '<option value="">— Aucune date secondaire dispo —</option>';
       return;
     }
@@ -1080,7 +1080,7 @@
     }
     const libres = genererDatesLibres(bookes);
     if (libres.length === 0) {
-      sel.innerHTML = '<option value="" disabled selected>Aucune soirée libre dans les 4 prochains mois — écris à surlascene@labrassee.cafe</option>';
+      sel.innerHTML = '<option value="" disabled selected>Aucune soirée libre d’ici la fin juillet — écris à surlascene@labrassee.cafe</option>';
       return;
     }
     const parMois = new Map();
